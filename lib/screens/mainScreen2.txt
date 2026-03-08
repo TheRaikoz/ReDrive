@@ -18,6 +18,9 @@ class _MainScreenState extends State<MainScreen>
   late AnimationController _animationController;
   late Animation<double> _panelAnimation;
 
+  // ДОБАВИЛИ КОНТРОЛЛЕР ДЛЯ СВАЙПОВ СТРАНИЦ
+  late PageController _pageController;
+
   final double minHeight = 50.0;
   final double maxHeight = 100.0;
 
@@ -52,6 +55,10 @@ class _MainScreenState extends State<MainScreen>
   @override
   void initState() {
     super.initState();
+
+    // Инициализируем контроллер страниц, стартуем с _currentIndex (с 0)
+    _pageController = PageController(initialPage: _currentIndex);
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -65,13 +72,14 @@ class _MainScreenState extends State<MainScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _pageController.dispose(); // Не забываем убить контроллер при выходе
     super.dispose();
   }
 
-  // Логика умного доводчика
+  // Логика умного доводчика панели
   void _onDragEnd(DragEndDetails details) {
     double currentHeight = GlobalState.panelHeight.value;
-    double midPoint = (minHeight + maxHeight) / 2;
+    double midPoint = (minHeight + maxHeight) / 3;
 
     double targetHeight;
 
@@ -105,7 +113,17 @@ class _MainScreenState extends State<MainScreen>
             builder: (context, height, child) {
               return Padding(
                 padding: EdgeInsets.only(bottom: height),
-                child: IndexedStack(index: _currentIndex, children: _screens),
+                // ВОТ ТУТ МЕНЯЕМ IndexedStack НА PageView
+                child: PageView(
+                  controller: _pageController,
+                  // Когда пользователь свайпнул пальцем, обновляем активную иконку внизу
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  children: _screens,
+                ),
               );
             },
           ),
@@ -237,11 +255,13 @@ class _MainScreenState extends State<MainScreen>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
+          // ТЕПЕРЬ ПРИ КЛИКЕ НА ИКОНКУ МЫ ПЛАВНО СКРОЛЛИМ СТРАНИЦУ
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+          );
         },
-
         child: SizedBox(
           height: 55,
           child: Column(

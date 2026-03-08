@@ -23,7 +23,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildDemoModeToggle(),
+                Row(
+                  children: [
+                    _buildDemoModeToggle(), // Остается слева
+                    const Spacer(), // Занимает всё пространство посередине
+                    _buildSettingsButton(), // Жестко прижат вправо
+                  ],
+                ),
                 const SizedBox(height: 10),
                 _buildLargeContainer(height: 220),
                 const SizedBox(height: 15),
@@ -78,6 +84,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsButton() {
+    return Container(
+      width: 35,
+      height: 35,
+      decoration: const BoxDecoration(
+        color: AppColors.cardBg,
+        shape: BoxShape.circle,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          // onTap: () {
+          //   // Настройки
+          // },
+          borderRadius: BorderRadius.circular(100),
+          child: Center(
+            child: SvgPicture.asset(
+              'assets/images/svg/dashboard/settings.svg',
+              width: 30,
+              height: 30,
+              colorFilter: const ColorFilter.mode(
+                AppColors.accent,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ),
