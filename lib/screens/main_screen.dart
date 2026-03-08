@@ -11,8 +11,15 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+
+  late AnimationController _animationController;
+  late Animation<double> _panelAnimation;
+
+  final double minHeight = 50.0;
+  final double maxHeight = 100.0;
 
   final List<Widget> _screens = [
     const DashboardScreen(),
@@ -43,6 +50,52 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+
+    _animationController.addListener(() {
+      GlobalState.panelHeight.value = _panelAnimation.value;
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  // Логика умного доводчика
+  void _onDragEnd(DragEndDetails details) {
+    double currentHeight = GlobalState.panelHeight.value;
+    double midPoint = (minHeight + maxHeight) / 2;
+
+    double targetHeight;
+
+    if (details.primaryVelocity! < -100) {
+      targetHeight = maxHeight;
+    } else if (details.primaryVelocity! > 100) {
+      targetHeight = minHeight;
+    } else {
+      targetHeight = currentHeight >= midPoint ? maxHeight : minHeight;
+    }
+
+    _panelAnimation = Tween<double>(begin: currentHeight, end: targetHeight)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
+    // Запускаем доводчик
+    _animationController.forward(from: 0.0);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -52,13 +105,15 @@ class _MainScreenState extends State<MainScreen> {
             valueListenable: GlobalState.panelHeight,
             builder: (context, height, child) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 100),
+                padding: EdgeInsets.only(bottom: height),
                 child: IndexedStack(index: _currentIndex, children: _screens),
               );
             },
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
             child: _buildDraggableBottomPanel(),
           ),
         ],
@@ -67,9 +122,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildDraggableBottomPanel() {
-    const double minHeight = 50.0;
-    const double maxHeight = 100.0;
-
     return ValueListenableBuilder<double>(
       valueListenable: GlobalState.panelHeight,
       builder: (context, height, child) {
@@ -78,76 +130,88 @@ class _MainScreenState extends State<MainScreen> {
           1.0,
         );
 
+        double iconScale = 1.0;
+
         return GestureDetector(
           onVerticalDragUpdate: (details) {
+            _animationController.stop();
+
             double newHeight = height - details.delta.dy;
             GlobalState.panelHeight.value = newHeight.clamp(
               minHeight,
               maxHeight,
             );
           },
+          onVerticalDragEnd: _onDragEnd,
           child: Container(
             height: height,
             decoration: BoxDecoration(
-              color: Color.lerp(Colors.transparent, const Color(0xFF0A0D14), t),
+              color: Color.lerp(AppColors.background, AppColors.cardBg, t),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(30),
               ),
             ),
             child: Column(
               children: [
-                const SizedBox(height: 8),
                 Container(
-                  width: 35,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                  width: 200,
+                  height: 20,
+                  color: Colors.transparent,
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 35,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
 
-                const SizedBox(height: 4),
                 // Иконки
                 Opacity(
                   opacity: t,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: Row(
-                      // spaceBetween тут больше не нужен, Expanded сделает всю работу
                       children: [
                         _buildNavItem(
                           'assets/images/svg/bottomBar/home.svg',
-                          55,
+                          52 * iconScale,
                           0,
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/car.svg',
-                          40,
+                          45 * iconScale,
                           1,
+                          padding: const EdgeInsets.only(left: 7),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/dashboard.svg',
-                          40,
+                          38 * iconScale,
                           2,
+                          padding: const EdgeInsets.only(left: 10),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/light.svg',
-                          40,
+                          40 * iconScale,
                           3,
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/bot.svg',
-                          40,
+                          47 * iconScale,
                           4,
+                          padding: const EdgeInsets.only(right: 8),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/map.svg',
-                          40,
+                          43 * iconScale,
                           5,
+                          padding: const EdgeInsets.only(right: 2),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/music.svg',
-                          40,
+                          43 * iconScale,
                           6,
                         ),
                       ],
@@ -162,7 +226,12 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(String iconPath, double size, int index) {
+  Widget _buildNavItem(
+    String iconPath,
+    double size,
+    int index, {
+    EdgeInsetsGeometry padding = EdgeInsets.zero,
+  }) {
     bool isActive = _currentIndex == index;
 
     return Expanded(
@@ -177,36 +246,18 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              iconPath,
-              width: size,
-              height: size,
-              colorFilter: ColorFilter.mode(
-                isActive ? AppColors.accent : Colors.white,
-                BlendMode.srcIn,
+            Padding(
+              padding: padding,
+              child: SvgPicture.asset(
+                iconPath,
+                width: size,
+                height: size,
+                colorFilter: ColorFilter.mode(
+                  isActive ? AppColors.accent : Colors.white,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-
-            // AnimatedOpacity(
-            //   duration: const Duration(milliseconds: 500),
-            //   opacity: isActive ? 1.0 : 0.0,
-            //   child: Container(
-            //     width: 24,
-            //     height: 3,
-            //     decoration: BoxDecoration(
-            //       color: AppColors.accent,
-            //       borderRadius: BorderRadius.circular(10),
-            //       boxShadow: [
-            //         BoxShadow(
-            //           color: AppColors.accent.withValues(alpha: 0.8),
-            //           blurRadius: 6,
-            //           spreadRadius: 1,
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // ),
           ],
         ),
       ),

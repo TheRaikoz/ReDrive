@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color background = Color(0xFF111111);
-  static const Color cardBg = Color(0xFF14171D);
+  static const Color cardBg = Color.fromARGB(255, 22, 26, 33);
   static const Color accent = Color.fromARGB(
     255,
     71,
