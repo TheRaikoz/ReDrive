@@ -66,7 +66,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _buildDashboardCard(
+                      child: _buildDashboardCardTemp(
                         title: "Температура\nдвигателя",
                         value: "90°C",
                         iconPath: 'assets/images/svg/dashboard/temp.svg',
@@ -292,8 +292,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Center(
                   child: SvgPicture.asset(
                     iconPath,
-                    width: 30,
-                    height: 30,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.accent,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                textScaler: TextScaler.noScaling,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            textScaler: TextScaler.noScaling,
+            style: const TextStyle(
+              color: AppColors.accent,
+              fontSize: 42,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardCardTemp({
+    required String title,
+    required String value,
+    required String iconPath,
+    required Alignment gradientBegin,
+    required Alignment gradientEnd,
+  }) {
+    return Container(
+      height: 178,
+      padding: const EdgeInsets.only(left: 12, top: 12, right: 10, bottom: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: gradientBegin,
+          end: gradientEnd,
+          colors: const [Color(0xFF000000), Color(0xFF112042)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                decoration: const BoxDecoration(
+                  color: AppColors.cardBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    iconPath,
+                    width: 40,
+                    height: 40,
                     fit: BoxFit.contain,
                     colorFilter: const ColorFilter.mode(
                       AppColors.accent,

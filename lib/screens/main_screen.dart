@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_colors.dart';
 import '../core/global_state.dart';
 import 'dashboard_screen.dart';
@@ -44,14 +45,14 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           ValueListenableBuilder<double>(
             valueListenable: GlobalState.panelHeight,
             builder: (context, height, child) {
               return Padding(
-                padding: EdgeInsets.only(bottom: height),
+                padding: const EdgeInsets.only(bottom: 100),
                 child: IndexedStack(index: _currentIndex, children: _screens),
               );
             },
@@ -66,52 +67,91 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildDraggableBottomPanel() {
+    const double minHeight = 50.0;
+    const double maxHeight = 100.0;
+
     return ValueListenableBuilder<double>(
       valueListenable: GlobalState.panelHeight,
       builder: (context, height, child) {
+        double t = ((height - minHeight) / (maxHeight - minHeight)).clamp(
+          0.0,
+          1.0,
+        );
+
         return GestureDetector(
           onVerticalDragUpdate: (details) {
             double newHeight = height - details.delta.dy;
-            GlobalState.panelHeight.value = newHeight.clamp(90.0, 400.0);
+            GlobalState.panelHeight.value = newHeight.clamp(
+              minHeight,
+              maxHeight,
+            );
           },
           child: Container(
             height: height,
-            decoration: const BoxDecoration(
-              color: Color(0xFF0A0D14),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 10,
-                  offset: Offset(0, -2),
-                ),
-              ],
+            decoration: BoxDecoration(
+              color: Color.lerp(Colors.transparent, const Color(0xFF0A0D14), t),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(30),
+              ),
             ),
             child: Column(
               children: [
                 const SizedBox(height: 8),
                 Container(
-                  width: 40,
-                  height: 4,
+                  width: 35,
+                  height: 6,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.3),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildNavItem(Icons.home, 0),
-                      _buildNavItem(Icons.directions_car, 1),
-                      _buildNavItem(Icons.smart_toy, 2),
-                      _buildNavItem(Icons.flash_on, 3),
-                      _buildNavItem(Icons.speed, 4),
-                      _buildNavItem(Icons.map, 5),
-                      _buildNavItem(Icons.music_note, 6),
-                    ],
+
+                const SizedBox(height: 4),
+                // Иконки
+                Opacity(
+                  opacity: t,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      // spaceBetween тут больше не нужен, Expanded сделает всю работу
+                      children: [
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/home.svg',
+                          55,
+                          0,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/car.svg',
+                          40,
+                          1,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/dashboard.svg',
+                          40,
+                          2,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/light.svg',
+                          40,
+                          3,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/bot.svg',
+                          40,
+                          4,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/map.svg',
+                          40,
+                          5,
+                        ),
+                        _buildNavItem(
+                          'assets/images/svg/bottomBar/music.svg',
+                          40,
+                          6,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -122,46 +162,53 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(IconData icon, int index) {
+  Widget _buildNavItem(String iconPath, double size, int index) {
     bool isActive = _currentIndex == index;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-          GlobalState.panelHeight.value = 90.0;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 32,
-            color: isActive ? AppColors.accent : Colors.white,
-          ),
-          const SizedBox(height: 4),
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: isActive ? 1.0 : 0.0,
-            child: Container(
-              width: 24,
-              height: 3,
-              decoration: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.accent.withValues(alpha: 0.8),
-                    blurRadius: 6,
-                    spreadRadius: 1,
-                  ),
-                ],
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SvgPicture.asset(
+              iconPath,
+              width: size,
+              height: size,
+              colorFilter: ColorFilter.mode(
+                isActive ? AppColors.accent : Colors.white,
+                BlendMode.srcIn,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+
+            // AnimatedOpacity(
+            //   duration: const Duration(milliseconds: 500),
+            //   opacity: isActive ? 1.0 : 0.0,
+            //   child: Container(
+            //     width: 24,
+            //     height: 3,
+            //     decoration: BoxDecoration(
+            //       color: AppColors.accent,
+            //       borderRadius: BorderRadius.circular(10),
+            //       boxShadow: [
+            //         BoxShadow(
+            //           color: AppColors.accent.withValues(alpha: 0.8),
+            //           blurRadius: 6,
+            //           spreadRadius: 1,
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
+          ],
+        ),
       ),
     );
   }
