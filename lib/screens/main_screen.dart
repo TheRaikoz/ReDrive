@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:redrive/screens/connect_screen.dart';
 import '../core/app_colors.dart';
 import '../core/global_state.dart';
 import 'dashboard_screen.dart';
@@ -31,10 +32,7 @@ class _MainScreenState extends State<MainScreen>
       color: Colors.green.withValues(alpha: 0.2),
       child: const Center(child: Text("Экран 3")),
     ),
-    Container(
-      color: Colors.purple.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 4")),
-    ),
+    const ConnectionScreen(),
     Container(
       color: Colors.orange.withValues(alpha: 0.2),
       child: const Center(child: Text("Экран 5")),
