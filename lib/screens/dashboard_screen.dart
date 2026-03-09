@@ -25,9 +25,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Row(
                   children: [
-                    _buildDemoModeToggle(), // Остается слева
-                    const Spacer(), // Занимает всё пространство посередине
-                    _buildSettingsButton(), // Жестко прижат вправо
+                    _buildDemoModeToggle(),
+                    const Spacer(),
+                    _buildSettingsButton(),
                   ],
                 ),
                 const SizedBox(height: 10),

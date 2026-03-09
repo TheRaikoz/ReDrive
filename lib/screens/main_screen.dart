@@ -68,13 +68,11 @@ class _MainScreenState extends State<MainScreen>
     super.dispose();
   }
 
-  // Логика умного доводчика
   void _onDragEnd(DragEndDetails details) {
     double currentHeight = GlobalState.panelHeight.value;
     double midPoint = (minHeight + maxHeight) / 2;
 
     double targetHeight;
-
     if (details.primaryVelocity! < -100) {
       targetHeight = maxHeight;
     } else if (details.primaryVelocity! > 100) {
@@ -102,10 +100,11 @@ class _MainScreenState extends State<MainScreen>
         children: [
           ValueListenableBuilder<double>(
             valueListenable: GlobalState.panelHeight,
-            builder: (context, height, child) {
+            child: IndexedStack(index: _currentIndex, children: _screens),
+            builder: (context, height, cachedChild) {
               return Padding(
                 padding: EdgeInsets.only(bottom: height),
-                child: IndexedStack(index: _currentIndex, children: _screens),
+                child: cachedChild,
               );
             },
           ),
@@ -129,19 +128,18 @@ class _MainScreenState extends State<MainScreen>
           1.0,
         );
 
-        double iconScale = 1.0;
-
         return GestureDetector(
           onVerticalDragUpdate: (details) {
             _animationController.stop();
 
-            double newHeight = height - details.delta.dy;
+            double newHeight = height - (details.delta.dy * 1.5);
             GlobalState.panelHeight.value = newHeight.clamp(
               minHeight,
               maxHeight,
             );
           },
           onVerticalDragEnd: _onDragEnd,
+
           child: Container(
             height: height,
             decoration: BoxDecoration(
@@ -176,41 +174,41 @@ class _MainScreenState extends State<MainScreen>
                       children: [
                         _buildNavItem(
                           'assets/images/svg/bottomBar/home.svg',
-                          52 * iconScale,
+                          52,
                           0,
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/car.svg',
-                          45 * iconScale,
+                          45,
                           1,
                           padding: const EdgeInsets.only(left: 7),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/dashboard.svg',
-                          38 * iconScale,
+                          38,
                           2,
                           padding: const EdgeInsets.only(left: 10),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/light.svg',
-                          40 * iconScale,
+                          40,
                           3,
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/bot.svg',
-                          47 * iconScale,
+                          47,
                           4,
                           padding: const EdgeInsets.only(right: 8),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/map.svg',
-                          43 * iconScale,
+                          43,
                           5,
                           padding: const EdgeInsets.only(right: 2),
                         ),
                         _buildNavItem(
                           'assets/images/svg/bottomBar/music.svg',
-                          43 * iconScale,
+                          43,
                           6,
                         ),
                       ],
