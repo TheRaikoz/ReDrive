@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:ui';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,9 +32,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                _buildLargeContainer(height: 220),
+                _buildCarCardContainer(height: 220),
                 const SizedBox(height: 15),
-                _buildRoundedContainer(),
+                _buildConnectionContainer(),
                 const SizedBox(height: 15),
                 Row(
                   children: [
@@ -91,6 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // КНОПКА ДЛЯ НАСТРОЕК
   Widget _buildSettingsButton() {
     return Container(
       width: 35,
@@ -122,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Виджет для переключателя Demo Mode
+  // ПЕРЕКЛЮЧЕНИЕ DEMO MODE
   Widget _buildDemoModeToggle() {
     return Material(
       type: MaterialType.transparency,
@@ -147,14 +149,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 7.0),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isToggledDemo ? 7.0 : 8.0,
+                  ),
                   child: Text(
                     textScaler: TextScaler.noScaling,
                     'Demo\nmode',
                     textAlign: isToggledDemo ? TextAlign.right : TextAlign.left,
                     style: const TextStyle(
                       fontSize: 9,
-                      color: AppColors.accent,
+                      color: Colors.white,
                       height: 1.1,
                       fontWeight: FontWeight.bold,
                     ),
@@ -186,40 +190,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Переиспользуемый виджет для больших контейнеров
-  Widget _buildLargeContainer({required double height}) {
+  // Карточка ДЛЯ МАШИН
+  Widget _buildCarCardContainer({required double height}) {
     return Container(
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        // Добавляем градиент
         color: AppColors.cardBg,
-        // gradient: LinearGradient(
-        //   begin: Alignment.topCenter,
-        //   end: Alignment.bottomCenter,
-        //   colors: [
-        //     const Color(0xFF000000), // Черный (0%)
-        //     const Color(0xFF112042), // Синий (100%)
-        //   ],
-        // ),
       ),
-
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SizedBox(
-            child: Image.asset(
-              'assets/images/png/car_background.png',
-              fit: BoxFit.contain,
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          const Positioned(
+            top: 25,
+            left: 0,
+            right: 0,
+            child: Text(
+              'MITSUBISHI LANCER IX',
+              textAlign: TextAlign.center,
+              textScaler: TextScaler.noScaling,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.0,
+              ),
             ),
-          );
-        },
+          ),
+
+          // 2. ТЕНЬ
+          Positioned(
+            bottom: 35,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 300,
+                height: 20,
+                child: ImageFiltered(
+                  imageFilter: ImageFilter.blur(sigmaX: 30, sigmaY: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // 3. ТАЧКА
+          Positioned.fill(
+            child: Transform.translate(
+              offset: const Offset(0, 20),
+              child: Image.asset(
+                'assets/images/png/car_background.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // Специальный виджет для круглого контейнера
-  Widget _buildRoundedContainer() {
+  // ВКЛЮЧЕНИЕ/ВЫКЛЮЧЕНИЕ СОЕДИНЕНИЯ
+  Widget _buildConnectionContainer() {
     return Container(
       width: double.infinity,
       height: 70,
@@ -296,6 +334,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Карточки ДАННЫХ АВТО
   Widget _buildDashboardCard({
     required String title,
     required String value,
