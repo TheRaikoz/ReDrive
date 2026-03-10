@@ -93,7 +93,6 @@ class _MainScreenState extends State<MainScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           ValueListenableBuilder<double>(
@@ -141,7 +140,11 @@ class _MainScreenState extends State<MainScreen>
           child: Container(
             height: height,
             decoration: BoxDecoration(
-              color: Color.lerp(AppColors.background, AppColors.cardBg, t),
+              color: Color.lerp(
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.surfaceContainer,
+                t,
+              ),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(30),
               ),
@@ -157,7 +160,7 @@ class _MainScreenState extends State<MainScreen>
                     width: 35,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.secondary,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -255,7 +258,9 @@ class _MainScreenState extends State<MainScreen>
                     width: size,
                     height: size,
                     colorFilter: ColorFilter.mode(
-                      isActive ? AppColors.accent : Colors.white,
+                      isActive
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.secondary,
                       BlendMode.srcIn,
                     ),
                   ),

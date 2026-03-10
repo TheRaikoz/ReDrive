@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../core/app_colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 
@@ -92,29 +91,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // КНОПКА ДЛЯ НАСТРОЕК
   Widget _buildSettingsButton() {
     return Container(
       width: 35,
       height: 35,
-      decoration: const BoxDecoration(
-        color: AppColors.cardBg,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
         shape: BoxShape.circle,
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          // onTap: () {
-          //   // Настройки
-          // },
           borderRadius: BorderRadius.circular(100),
           child: Center(
             child: SvgPicture.asset(
               'assets/images/svg/dashboard/settings.svg',
               width: 30,
               height: 30,
-              colorFilter: const ColorFilter.mode(
-                AppColors.accent,
+              colorFilter: ColorFilter.mode(
+                Theme.of(context).colorScheme.primary,
                 BlendMode.srcIn,
               ),
             ),
@@ -124,20 +119,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ПЕРЕКЛЮЧЕНИЕ DEMO MODE
   Widget _buildDemoModeToggle() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
         onTap: () => setState(() => isToggledDemo = !isToggledDemo),
         borderRadius: BorderRadius.circular(24),
-        splashColor: AppColors.accent.withValues(alpha: 0.3),
-        highlightColor: AppColors.accent.withValues(alpha: 0.1),
+        splashColor: colorScheme.primary.withValues(alpha: 0.3),
+        highlightColor: colorScheme.primary.withValues(alpha: 0.1),
         child: Container(
           width: 65,
           height: 35,
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.accent, width: 2),
+            border: Border.all(color: colorScheme.primary, width: 2),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Stack(
@@ -153,12 +149,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     horizontal: isToggledDemo ? 7.0 : 8.0,
                   ),
                   child: Text(
-                    textScaler: TextScaler.noScaling,
                     'Demo\nmode',
+                    textScaler: TextScaler.noScaling,
                     textAlign: isToggledDemo ? TextAlign.right : TextAlign.left,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 9,
-                      color: Colors.white,
+                      color: colorScheme.onSurface,
                       height: 1.1,
                       fontWeight: FontWeight.bold,
                     ),
@@ -176,8 +172,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Container(
                     width: 23,
                     height: 23,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -190,19 +186,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Карточка ДЛЯ МАШИН
   Widget _buildCarCardContainer({required double height}) {
     return Container(
       width: double.infinity,
       height: height,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: AppColors.cardBg,
+        color: Theme.of(context).colorScheme.surfaceContainer,
       ),
       clipBehavior: Clip.hardEdge,
       child: Stack(
         children: [
-          const Positioned(
+          Positioned(
             top: 25,
             left: 0,
             right: 0,
@@ -211,15 +206,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               textAlign: TextAlign.center,
               textScaler: TextScaler.noScaling,
               style: TextStyle(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontSize: 24,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 1.0,
               ),
             ),
           ),
-
-          // 2. ТЕНЬ
           Positioned(
             bottom: 35,
             left: 0,
@@ -240,8 +233,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ),
-
-          // 3. ТАЧКА
           Positioned.fill(
             child: Transform.translate(
               offset: const Offset(0, 20),
@@ -256,15 +247,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ВКЛЮЧЕНИЕ/ВЫКЛЮЧЕНИЕ СОЕДИНЕНИЯ
   Widget _buildConnectionContainer() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       width: double.infinity,
       height: 70,
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: AppColors.accent, width: 2),
+        border: Border.all(color: colorScheme.primary, width: 2),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(100),
@@ -273,8 +265,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: InkWell(
             onTap: () =>
                 setState(() => isToggledConnection = !isToggledConnection),
-            splashColor: AppColors.accent.withValues(alpha: 0.2),
-            highlightColor: AppColors.accent.withValues(alpha: 0.1),
+            splashColor: colorScheme.primary.withValues(alpha: 0.2),
+            highlightColor: colorScheme.primary.withValues(alpha: 0.1),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
@@ -284,16 +276,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 45,
                     height: 45,
                     colorFilter: ColorFilter.mode(
-                      AppColors.accent,
+                      colorScheme.primary,
                       BlendMode.srcIn,
                     ),
                   ),
                   const SizedBox(width: 3),
-                  const Text(
+                  Text(
                     "Подключено",
                     textScaler: TextScaler.noScaling,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: colorScheme.onSurface,
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                     ),
@@ -303,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 70,
                     height: 43,
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.accent, width: 2),
+                      border: Border.all(color: colorScheme.primary, width: 2),
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: AnimatedAlign(
@@ -317,8 +309,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           width: 26,
                           height: 26,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accent,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -334,7 +326,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Карточки ДАННЫХ АВТО
   Widget _buildDashboardCard({
     required String title,
     required String value,
@@ -362,8 +353,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 width: 45,
                 height: 45,
-                decoration: const BoxDecoration(
-                  color: AppColors.cardBg,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -372,8 +363,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 32,
                     height: 32,
                     fit: BoxFit.contain,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.accent,
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).colorScheme.primary,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -383,8 +374,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 title,
                 textScaler: TextScaler.noScaling,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   height: 1.1,
@@ -395,8 +386,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             value,
             textScaler: TextScaler.noScaling,
-            style: const TextStyle(
-              color: AppColors.accent,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 42,
               fontWeight: FontWeight.w700,
             ),
@@ -433,8 +424,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 width: 45,
                 height: 45,
-                decoration: const BoxDecoration(
-                  color: AppColors.cardBg,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -443,8 +434,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: 40,
                     height: 40,
                     fit: BoxFit.contain,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.accent,
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).colorScheme.primary,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -454,8 +445,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 title,
                 textScaler: TextScaler.noScaling,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   height: 1.1,
@@ -466,8 +457,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             value,
             textScaler: TextScaler.noScaling,
-            style: const TextStyle(
-              color: AppColors.accent,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 42,
               fontWeight: FontWeight.w700,
             ),
