@@ -14,6 +14,9 @@ class AppThemes {
       onSurface: AppColors.textMainColor, // цвет текста
       secondary:
           AppColors.accentIconsBottomBar, // основной цвет иконок bottom bar
+
+      outlineVariant: Color(0xFF404040), // цвет основнойо обводки
+      outline: Colors.white,
     ),
 
     // splashColor: Colors.transparent,
