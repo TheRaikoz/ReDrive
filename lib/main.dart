@@ -1,10 +1,17 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/obd_provider.dart';
 import 'core/app_themes.dart';
 import 'screens/main_screen.dart';
 
 void main() {
-  runApp(const RedriveApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ObdProvider(),
+      child: const RedriveApp(),
+    ),
+  );
 }
 
 class RedriveApp extends StatelessWidget {

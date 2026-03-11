@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
+import 'package:provider/provider.dart';
+import '../providers/obd_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -10,11 +12,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool isToggledDemo = false;
   bool isToggledConnection = false;
 
   @override
   Widget build(BuildContext context) {
+    final obdData = context.watch<ObdProvider>().data;
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -40,7 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: _buildDashboardCard(
                         title: "Текущая\nскорость",
-                        value: "120",
+                        value: obdData.speed,
+                        suffix: "",
                         iconPath: 'assets/images/svg/dashboard/speed.svg',
                         gradientBegin: Alignment.topLeft,
                         gradientEnd: Alignment.bottomRight,
@@ -50,7 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: _buildDashboardCard(
                         title: "Обороты\nдвигателя",
-                        value: "2500",
+                        value: obdData.rpm,
+                        suffix: "",
                         iconPath: 'assets/images/svg/dashboard/engine.svg',
                         gradientBegin: Alignment.topRight,
                         gradientEnd: Alignment.bottomLeft,
@@ -64,7 +69,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: _buildDashboardCard(
                         title: "Уровень\nтоплива",
-                        value: "65%",
+                        value: 65,
+                        suffix: "%",
                         iconPath: 'assets/images/svg/dashboard/fuel.svg',
                         gradientBegin: Alignment.bottomLeft,
                         gradientEnd: Alignment.topRight,
@@ -74,7 +80,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Expanded(
                       child: _buildDashboardCardTemp(
                         title: "Температура\nдвигателя",
-                        value: "90°C",
+                        value: obdData.engineTemp,
+                        suffix: "°C",
                         iconPath: 'assets/images/svg/dashboard/temp.svg',
                         gradientBegin: Alignment.bottomRight,
                         gradientEnd: Alignment.topLeft,
@@ -121,11 +128,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDemoModeToggle() {
     final colorScheme = Theme.of(context).colorScheme;
+    final isToggledDemo = context.watch<ObdProvider>().isDemoMode;
 
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
-        onTap: () => setState(() => isToggledDemo = !isToggledDemo),
+        onTap: () {
+          context.read<ObdProvider>().toggleDemoMode();
+        },
         borderRadius: BorderRadius.circular(24),
         splashColor: colorScheme.primary.withValues(alpha: 0.3),
         highlightColor: colorScheme.primary.withValues(alpha: 0.1),
@@ -142,16 +152,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 alignment: isToggledDemo
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
                 child: Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: isToggledDemo ? 7.0 : 8.0,
+                    horizontal: isToggledDemo ? 8.0 : 7.0,
                   ),
                   child: Text(
                     'Demo\nmode',
                     textScaler: TextScaler.noScaling,
-                    textAlign: isToggledDemo ? TextAlign.right : TextAlign.left,
                     style: TextStyle(
                       fontSize: 9,
                       color: colorScheme.onSurface,
@@ -165,8 +174,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 alignment: isToggledDemo
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Padding(
                   padding: const EdgeInsets.all(5),
                   child: Container(
@@ -326,8 +335,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardCard({
     required String title,
-    required String value,
+    required int value,
     required String iconPath,
+    required String suffix,
     required Alignment gradientBegin,
     required Alignment gradientEnd,
   }) {
@@ -381,14 +391,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-          Text(
-            value,
-            textScaler: TextScaler.noScaling,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 42,
-              fontWeight: FontWeight.w700,
-            ),
+          TweenAnimationBuilder<int>(
+            tween: IntTween(begin: 0, end: value),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, child) {
+              return Text(
+                "$animatedValue$suffix",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -397,8 +414,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardCardTemp({
     required String title,
-    required String value,
+    required int value,
     required String iconPath,
+    required String suffix,
     required Alignment gradientBegin,
     required Alignment gradientEnd,
   }) {
@@ -452,14 +470,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ],
           ),
-          Text(
-            value,
-            textScaler: TextScaler.noScaling,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.primary,
-              fontSize: 42,
-              fontWeight: FontWeight.w700,
-            ),
+          TweenAnimationBuilder<int>(
+            tween: IntTween(begin: 0, end: value),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, child) {
+              return Text(
+                "$animatedValue$suffix",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
           ),
         ],
       ),
