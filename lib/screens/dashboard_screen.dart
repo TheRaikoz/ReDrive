@@ -265,8 +265,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: InkWell(
             onTap: () =>
                 setState(() => isToggledConnection = !isToggledConnection),
-            splashColor: colorScheme.primary.withValues(alpha: 0.2),
-            highlightColor: colorScheme.primary.withValues(alpha: 0.1),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
