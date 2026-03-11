@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:redrive/screens/connect_screen.dart';
-import '../core/app_colors.dart';
 import '../core/global_state.dart';
 import 'dashboard_screen.dart';
 
