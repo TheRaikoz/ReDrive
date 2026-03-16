@@ -67,10 +67,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildDashboardCard(
-                        title: "Уровень\nтоплива",
-                        value: 65,
-                        suffix: "%",
+                      child: _buildDashboardCardVoltage(
+                        title: "Напряжение\nАКБ",
+                        value: obdData.voltage,
+                        suffix: "V",
                         iconPath: 'assets/images/svg/dashboard/fuel.svg',
                         gradientBegin: Alignment.bottomLeft,
                         gradientEnd: Alignment.topRight,
@@ -398,6 +398,85 @@ class _DashboardScreenState extends State<DashboardScreen> {
             builder: (context, animatedValue, child) {
               return Text(
                 "$animatedValue$suffix",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontSize: 42,
+                  fontWeight: FontWeight.w700,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashboardCardVoltage({
+    required String title,
+    required num value,
+    required String iconPath,
+    required String suffix,
+    required Alignment gradientBegin,
+    required Alignment gradientEnd,
+  }) {
+    return Container(
+      height: 178,
+      padding: const EdgeInsets.only(left: 12, top: 12, right: 10, bottom: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: gradientBegin,
+          end: gradientEnd,
+          colors: const [Color(0xFF000000), Color(0xFF112042)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    iconPath,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.contain,
+                    colorFilter: ColorFilter.mode(
+                      Theme.of(context).colorScheme.primary,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+          TweenAnimationBuilder<double>(
+            tween: Tween<double>(begin: 0.0, end: value.toDouble()),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            builder: (context, animatedValue, child) {
+              return Text(
+                "${animatedValue.toStringAsFixed(1)}$suffix",
                 textScaler: TextScaler.noScaling,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
