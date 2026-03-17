@@ -7,58 +7,44 @@ class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key});
 
   @override
-  State<ConnectionScreen> createState() {
-    return _ConnectionScreenState();
-  }
+  State<ConnectionScreen> createState() => _ConnectionScreenState();
 }
 
 class _ConnectionScreenState extends State<ConnectionScreen> {
-  bool bluetoothToggle = false;
-  bool wifiToggle = false;
-
-  void _toggleBluetooth(BluetoothProvider provider) {
-    setState(() {
-      bluetoothToggle = !bluetoothToggle;
-    });
-
-    if (bluetoothToggle) {
-      provider.startScan();
+  void _toggleBluetooth(BluetoothProvider provider) async {
+    if (!provider.isToggleOn) {
+      await provider.startScan();
     } else {
-      provider.disconnect();
+      provider.turnOffBluetooth();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bluetoothProvider = context.watch<BluetoothProvider>();
+    final isToggleOn = bluetoothProvider.isToggleOn;
 
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsetsGeometry.only(top: 3, left: 20, right: 20),
+          padding: const EdgeInsets.only(top: 3, left: 20, right: 20),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: EdgeInsetsGeometry.only(left: 10),
+                const Padding(
+                  padding: EdgeInsets.only(left: 10),
                   child: Text(
                     "Подключение",
-                    style: TextStyle(
-                      fontSize: 28,
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
                   ),
                 ),
+                const SizedBox(height: 10),
 
-                SizedBox(height: 10),
+                _bluetoothButton(bluetoothProvider, isToggleOn),
 
-                // bluetooth toggle button
-                _bluetoothButton(bluetoothProvider),
-                SizedBox(height: 20),
-                // _wifiButton(),
-                SizedBox(height: 18),
+                const SizedBox(height: 20),
+                const SizedBox(height: 18),
               ],
             ),
           ),
@@ -67,7 +53,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     );
   }
 
-  Widget _bluetoothButton(BluetoothProvider provider) {
+  Widget _bluetoothButton(BluetoothProvider provider, bool isToggleOn) {
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 140),
@@ -109,7 +95,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
-                                  color: bluetoothToggle
+                                  color: isToggleOn
                                       ? Theme.of(context).colorScheme.primary
                                       : Theme.of(context).colorScheme.onSurface,
                                 ),
@@ -133,14 +119,13 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                               ),
                             ],
                           ),
-
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             curve: Curves.easeInOut,
                             width: 75,
                             height: 45,
                             decoration: BoxDecoration(
-                              color: bluetoothToggle
+                              color: isToggleOn
                                   ? Theme.of(context).colorScheme.primary
                                   : Theme.of(
                                       context,
@@ -150,7 +135,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                             child: AnimatedAlign(
                               duration: const Duration(milliseconds: 200),
                               curve: Curves.easeInOut,
-                              alignment: bluetoothToggle
+                              alignment: isToggleOn
                                   ? Alignment.centerRight
                                   : Alignment.centerLeft,
                               child: Padding(
@@ -163,7 +148,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                                   width: 30,
                                   height: 30,
                                   decoration: BoxDecoration(
-                                    color: bluetoothToggle
+                                    color: isToggleOn
                                         ? Theme.of(context).colorScheme.outline
                                         : Theme.of(
                                             context,
@@ -181,7 +166,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 ),
               ),
 
-              if (bluetoothToggle) ...[
+              if (isToggleOn) ...[
                 Divider(
                   color: Theme.of(
                     context,
@@ -198,7 +183,6 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                     bottom: 16,
                   ),
                   child:
-                      // если грузится и устройства отсутвуют то...
                       provider.isScanning && provider.discoveredDevices.isEmpty
                       ? const Padding(
                           padding: EdgeInsets.all(16.0),
@@ -232,10 +216,33 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          if (!isConnected) provider.connectToDevice(device);
+        onTap: () async {
+          if (!isConnected && !provider.isConnecting) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Подключение к ${device.name}..."),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+
+            bool success = await provider.connectToDevice(device);
+
+            if (!success && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    "Устройство '${device.name}' недоступно или выключено",
+                  ),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else if (isConnected) {
+            provider.disconnect();
+          }
         },
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(50),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
           child: Row(
@@ -248,27 +255,35 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: isConnected
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Text(
-                  statusText,
-                  textScaler: TextScaler.noScaling,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: AnimatedContainer(
+                  alignment: Alignment.center,
+                  width: isConnected ? 120 : 110,
+                  duration: const Duration(milliseconds: 250),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                  child: Text(
+                    statusText,
+                    textScaler: TextScaler.noScaling,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
