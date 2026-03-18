@@ -238,8 +238,6 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 ),
               );
             }
-          } else if (isConnected) {
-            provider.disconnect();
           }
         },
         borderRadius: BorderRadius.circular(50),

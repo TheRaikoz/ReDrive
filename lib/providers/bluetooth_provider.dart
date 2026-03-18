@@ -55,6 +55,29 @@ class BluetoothProvider extends ChangeNotifier {
     });
   }
 
+  // ==================== HELPERS ====================
+  void _addDeviceToList(BluetoothDevice device, {bool connected = false}) {
+    if (_deviceMap.containsKey(device.address)) return;
+
+    _deviceMap[device.address] = device;
+    _discoveredDevices.add(
+      ObdDevice(
+        name: device.name ?? "Неизвестное устройство",
+        address: device.address,
+        isBle: false,
+        // если у тебя в модели есть поле isConnected / connected / status,
+        // сюда можно передать connected
+      ),
+    );
+  }
+
+  void _addObdDeviceToTop(ObdDevice device) {
+    final exists = _discoveredDevices.any((d) => d.address == device.address);
+    if (exists) return;
+
+    _discoveredDevices.insert(0, device);
+  }
+
   // ==================== ПОИСК ====================
   Future<bool> startScan() async {
     if (_isScanning) return true;
@@ -74,80 +97,62 @@ class BluetoothProvider extends ChangeNotifier {
     _isScanning = true;
     _discoveredDevices.clear();
     _deviceMap.clear();
+
+    // 1) СРАЗУ показываем текущее подключенное в приложении устройство
+    if (_isConnected && _connectedDevice != null) {
+      _addObdDeviceToTop(_connectedDevice!);
+    }
+
     notifyListeners();
 
     try {
-      // ================= CONNECTED DEVICES (НОВОЕ) =================
-      final connected = await _blue.connectedDevices ?? [];
-
-      for (var device in connected) {
-        _deviceMap[device.address] = device;
-
-        _discoveredDevices.add(
-          ObdDevice(
-            name: device.name ?? "Подключенное устройство",
-            address: device.address,
-            isBle: false,
-          ),
+      // 2) СРАЗУ показываем все спаренные устройства
+      final bonded = await _blue.bondedDevices ?? [];
+      for (final device in bonded) {
+        _addDeviceToList(
+          device,
+          connected: _connectedDevice?.address == device.address,
         );
       }
 
-      // ================= BONDED DEVICES =================
-      final bonded = await _blue.bondedDevices ?? [];
+      notifyListeners(); // <-- обновление сразу после bondedDevices
 
-      for (var device in bonded) {
-        if (!_deviceMap.containsKey(device.address)) {
-          _deviceMap[device.address] = device;
-
-          _discoveredDevices.add(
-            ObdDevice(
-              name: device.name ?? "Неизвестное устройство",
-              address: device.address,
-              isBle: false,
-            ),
-          );
-        }
-      }
-
-      // ================= SCAN =================
+      // 3) Потом запускаем живой скан
       _blue.startScan();
 
-      _scanSubscription?.cancel();
-
+      await _scanSubscription?.cancel();
       _scanSubscription = _blue.scanResults.listen((BluetoothDevice device) {
         if (!_deviceMap.containsKey(device.address)) {
-          _deviceMap[device.address] = device;
-
-          _discoveredDevices.add(
-            ObdDevice(
-              name: device.name ?? "Неизвестное устройство",
-              address: device.address,
-              isBle: false,
-            ),
+          _addDeviceToList(
+            device,
+            connected: _connectedDevice?.address == device.address,
           );
-
           notifyListeners();
         }
       });
     } catch (e) {
       debugPrint("[reBlue] Scan error: $e");
+      _isScanning = false;
+      notifyListeners();
+      return false;
     }
 
     return true;
   }
 
   Future<void> _stopScan() async {
-    _blue.stopScan(); // ← без await (void)
+    _blue.stopScan();
     await _scanSubscription?.cancel();
     _scanSubscription = null;
     _isScanning = false;
     notifyListeners();
   }
 
-  // ==================== ПОДКЛЮЧЕНИЕ (главное исправление) ====================
+  // ==================== ПОДКЛЮЧЕНИЕ ====================
   Future<bool> connectToDevice(ObdDevice device) async {
-    if (_isConnected && _connectedDevice?.address == device.address)
+    if (_isConnected && _connectedDevice?.address == device.address) {
       return true;
+    }
     if (_isConnecting) return false;
 
     _isConnecting = true;
@@ -165,14 +170,18 @@ class BluetoothProvider extends ChangeNotifier {
     try {
       debugPrint("[reBlue] Спаривание + подключение к ${device.name}");
 
-      await _blue.bondDevice(btDevice.address); // ← String address!
+      await _blue.bondDevice(btDevice.address);
       _connection = await _blue
-          .connect(btDevice.address) // ← String address!
+          .connect(btDevice.address)
           .timeout(const Duration(seconds: 15));
 
       _connectedDevice = device;
       _isConnected = true;
       _setupListen();
+
+      // Чтобы подключенное устройство сразу было первым в списке
+      _discoveredDevices.removeWhere((d) => d.address == device.address);
+      _discoveredDevices.insert(0, device);
 
       debugPrint("[reBlue] ✅ УСПЕШНО подключено к ${device.name}");
       notifyListeners();
@@ -180,7 +189,6 @@ class BluetoothProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint("[reBlue] ❌ Ошибка подключения к ${device.name}: $e");
 
-      // Ловим самую частую ошибку Classic BT (не крашит!)
       if (e.toString().contains("read failed") ||
           e.toString().contains("socket") ||
           e.toString().contains("couldNotConnect")) {
@@ -201,7 +209,6 @@ class BluetoothProvider extends ChangeNotifier {
 
   void _setupListen() {
     _inputSubscription = _connection!.input!.listen(
-      // ← ! потому что Stream<Uint8List>?
       (Uint8List data) {
         final incoming = String.fromCharCodes(data);
         debugPrint("[reBlue] RX: $incoming");
@@ -220,6 +227,7 @@ class BluetoothProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint("[reBlue] Ошибка отключения: $e");
     }
+
     _isConnected = false;
     _connectedDevice = null;
     _isConnecting = false;
