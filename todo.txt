@@ -1,5 +1,25 @@
 1) Сделать при нажатии на кнопку bluetooth с ращрешением, если устройство уже было подключено,
  чтобы оно отображалось сразу подключённым!!!
-2) Если устрйтво подключат из под системы тоже обсервером обрабоать
-3) Сделать корректное отображение при отсутвтии найденных устройств
-4) loader корректно настроить уже наконец
+
+✅3) Сделать корректное отображение при отсутвтии найденных устройств
+✅4) loader корректно настроить уже наконец
+5) 
+  Future<bool> startScan() async {
+    if (_isScanning) return true;
+
+    _isToggleOn = true;
+
+    debugPrint("[reBlue] запрашиваем доступ к разрешениям");
+    _isScanning = true;
+    notifyListeners();
+
+    final permissionsGranted = await requestBluetoothPermissions();
+
+    if (!permissionsGranted) {
+      _isToggleOn = false;
+      _isScanning = false;
+      notifyListeners();
+      return false;
+    }
+ЕЛСИ ПОЛЬЗОВТЕЛЬ ОТКЛОНИЛ ДВА РАЗА, ВЫДАТЬ СВОЁ КАСТОМНОЕ МЕНЮ С ЗАХОДОМ В НАСТРОЙКИ
+И ДОБАВЛЕНИЕМ РАЗРЕШЕНИЯ ВРУЧНУЮ.
