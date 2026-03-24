@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:redrive/screens/car_screen.dart';
 import 'package:redrive/screens/connect_screen.dart';
 import '../core/global_state.dart';
 import 'dashboard_screen.dart';
@@ -23,10 +24,7 @@ class _MainScreenState extends State<MainScreen>
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    Container(
-      color: Colors.red.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 2")),
-    ),
+    const CarScreen(),
     Container(
       color: Colors.green.withValues(alpha: 0.2),
       child: const Center(child: Text("Экран 3")),

@@ -35,8 +35,9 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 const Padding(
                   padding: EdgeInsets.only(left: 10),
                   child: Text(
+                    textScaler: TextScaler.noScaling,
                     "Подключение",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
                   ),
                 ),
                 const SizedBox(height: 10),
