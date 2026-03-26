@@ -1,5 +1,5 @@
 import 'dart:async';
-// import 'dart:typed_data';
+import 'dart:developer' as developer; // Импорт для мгновенных логов
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -28,6 +28,8 @@ class BluetoothProvider extends ChangeNotifier {
   StreamSubscription<Uint8List>? _inputSubscription;
   StreamSubscription<BluetoothDevice>? _scanSubscription;
 
+  Timer? _scanTimer;
+
   bool _isHardwareOn = false;
   bool get isHardwareOn => _isHardwareOn;
 
@@ -48,14 +50,14 @@ class BluetoothProvider extends ChangeNotifier {
       _isHardwareOn = state == BluetoothAdapterState.on;
 
       if (state == BluetoothAdapterState.off) {
-        debugPrint("[reBlue] ⚠️ Bluetooth ВЫКЛЮЧЕН!");
+        developer.log("⚠️ Bluetooth ВЫКЛЮЧЕН!", name: 'reBlue');
         _isToggleOn = false;
         disconnect();
         _discoveredDevices.clear();
         _deviceMap.clear();
         _isScanning = false;
       } else if (state == BluetoothAdapterState.on) {
-        debugPrint("[reBlue] ✅ Bluetooth ВКЛЮЧЕН!");
+        developer.log("✅ Bluetooth ВКЛЮЧЕН!", name: 'reBlue');
         if (_pendingScan) {
           _pendingScan = false;
           startScan();
@@ -65,7 +67,6 @@ class BluetoothProvider extends ChangeNotifier {
     });
   }
 
-  // ==================== HELPERS ====================
   void _addDeviceToList(BluetoothDevice device, {bool connected = false}) {
     if (_deviceMap.containsKey(device.address)) return;
 
@@ -86,11 +87,10 @@ class BluetoothProvider extends ChangeNotifier {
     _discoveredDevices.insert(0, device);
   }
 
-  // ==================== ПОИСК ====================
   Future<bool> startScan() async {
     if (_isScanning) return true;
 
-    debugPrint("[reBlue] запрашиваем доступ к разрешениям");
+    developer.log("Запрашиваем доступ к разрешениям", name: 'reBlue');
     final permissionsGranted = await requestBluetoothPermissions();
 
     if (!permissionsGranted) {
@@ -104,9 +104,8 @@ class BluetoothProvider extends ChangeNotifier {
       try {
         _bluetooth.turnOn();
       } catch (e) {
-        debugPrint("[reBlue] Ошибка вызова turnOn: $e");
+        developer.log("Ошибка вызова turnOn: $e", name: 'reBlue', error: e);
       }
-
       return false;
     }
 
@@ -122,7 +121,6 @@ class BluetoothProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 2) СРАЗУ показываем все спаренные устройства
       final bonded = await _bluetooth.bondedDevices ?? [];
       for (final device in bonded) {
         _addDeviceToList(
@@ -133,8 +131,8 @@ class BluetoothProvider extends ChangeNotifier {
 
       notifyListeners();
 
-      // 3) Потом запускаем живой скан
       _bluetooth.startScan();
+      developer.log("Сканирование запущено", name: 'reBlue');
 
       await _scanSubscription?.cancel();
       _scanSubscription = _bluetooth.scanResults.listen((
@@ -148,8 +146,16 @@ class BluetoothProvider extends ChangeNotifier {
           notifyListeners();
         }
       });
+
+      _scanTimer?.cancel();
+      _scanTimer = Timer(const Duration(seconds: 15), () {
+        if (_isScanning) {
+          developer.log("Таймер: 15 секунд прошло, авто-стоп", name: 'reBlue');
+          _stopScan();
+        }
+      });
     } catch (e) {
-      debugPrint("[reBlue] Scan error: $e");
+      developer.log("Scan error: $e", name: 'reBlue', error: e);
       _isScanning = false;
       notifyListeners();
       return false;
@@ -159,14 +165,15 @@ class BluetoothProvider extends ChangeNotifier {
   }
 
   Future<void> _stopScan() async {
+    _scanTimer?.cancel();
     _bluetooth.stopScan();
     await _scanSubscription?.cancel();
     _scanSubscription = null;
     _isScanning = false;
     notifyListeners();
+    developer.log("Сканирование остановлено", name: 'reBlue');
   }
 
-  // ==================== ПОДКЛЮЧЕНИЕ ====================
   Future<bool> connectToDevice(ObdDevice device) async {
     if (_isConnected && _connectedDevice?.address == device.address) {
       return true;
@@ -186,7 +193,10 @@ class BluetoothProvider extends ChangeNotifier {
     }
 
     try {
-      debugPrint("[reBlue] Спаривание + подключение к ${device.name}");
+      developer.log(
+        "Попытка подключения к ${device.name} (${device.address})",
+        name: 'reBlue',
+      );
 
       await _bluetooth.bondDevice(btDevice.address);
       _connection = await _bluetooth
@@ -197,21 +207,25 @@ class BluetoothProvider extends ChangeNotifier {
       _isConnected = true;
       _setupListen();
 
-      // Чтобы подключенное устройство сразу было первым в списке
       _discoveredDevices.removeWhere((d) => d.address == device.address);
       _discoveredDevices.insert(0, device);
 
-      debugPrint("[reBlue] ✅ УСПЕШНО подключено к ${device.name}");
+      developer.log("✅ УСПЕШНО подключено к ${device.name}", name: 'reBlue');
       notifyListeners();
       return true;
     } catch (e) {
-      debugPrint("[reBlue] ❌ Ошибка подключения к ${device.name}: $e");
+      developer.log(
+        "❌ Ошибка подключения к ${device.name}: $e",
+        name: 'reBlue',
+        error: e,
+      );
 
       if (e.toString().contains("read failed") ||
           e.toString().contains("socket") ||
           e.toString().contains("couldNotConnect")) {
-        debugPrint(
-          "[reBlue] Классическая ошибка Android BT (таймаут или уже занято)",
+        developer.log(
+          "Классическая ошибка Android BT (таймаут или занято)",
+          name: 'reBlue',
         );
       }
 
@@ -229,10 +243,16 @@ class BluetoothProvider extends ChangeNotifier {
     _inputSubscription = _connection!.input!.listen(
       (Uint8List data) {
         final incoming = String.fromCharCodes(data);
-        debugPrint("[reBlue] RX: $incoming");
+        developer.log("RX: $incoming", name: 'reBlue');
       },
-      onDone: () => disconnect(),
-      onError: (e) => disconnect(),
+      onDone: () {
+        developer.log("Поток данных закрыт (onDone)", name: 'reBlue');
+        disconnect();
+      },
+      onError: (e) {
+        developer.log("Ошибка в потоке данных", name: 'reBlue', error: e);
+        disconnect();
+      },
       cancelOnError: true,
     );
   }
@@ -242,8 +262,9 @@ class BluetoothProvider extends ChangeNotifier {
       await _inputSubscription?.cancel();
       await _connection?.finish();
       _connection = null;
+      developer.log("Соединение разорвано", name: 'reBlue');
     } catch (e) {
-      debugPrint("[reBlue] Ошибка отключения: $e");
+      developer.log("Ошибка при отключении: $e", name: 'reBlue', error: e);
     }
 
     _isConnected = false;
