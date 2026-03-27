@@ -1,20 +1,21 @@
 import 'dart:async';
-import 'dart:developer' as developer; // Импорт для мгновенных логов
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:redrive/services/bluetooth_permission_service.dart';
 import '../models/obd_device.dart';
 
 class BluetoothProvider extends ChangeNotifier {
   final FlutterBlueClassic _bluetooth = FlutterBlueClassic();
 
+  /// сканируется ?
   bool _isScanning = false;
   bool get isScanning => _isScanning;
 
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
+  /// подключается ?
   bool _isConnecting = false;
   bool get isConnecting => _isConnecting;
 
@@ -23,6 +24,8 @@ class BluetoothProvider extends ChangeNotifier {
 
   final List<ObdDevice> _discoveredDevices = [];
   List<ObdDevice> get discoveredDevices => _discoveredDevices;
+
+  final Map<String, BluetoothDevice> _deviceMap = {};
 
   BluetoothConnection? _connection;
   StreamSubscription<Uint8List>? _inputSubscription;
@@ -38,8 +41,6 @@ class BluetoothProvider extends ChangeNotifier {
 
   bool _pendingScan = false;
 
-  final Map<String, BluetoothDevice> _deviceMap = {};
-
   BluetoothProvider() {
     _bluetooth.adapterStateNow.then((BluetoothAdapterState state) {
       _isHardwareOn = state == BluetoothAdapterState.on;
@@ -53,9 +54,9 @@ class BluetoothProvider extends ChangeNotifier {
         developer.log("⚠️ Bluetooth ВЫКЛЮЧЕН!", name: 'reBlue');
         _isToggleOn = false;
         disconnect();
+        _stopScan();
         _discoveredDevices.clear();
         _deviceMap.clear();
-        _isScanning = false;
       } else if (state == BluetoothAdapterState.on) {
         developer.log("✅ Bluetooth ВКЛЮЧЕН!", name: 'reBlue');
         if (_pendingScan) {
@@ -80,12 +81,13 @@ class BluetoothProvider extends ChangeNotifier {
     );
   }
 
-  void _addObdDeviceToTop(ObdDevice device) {
-    final exists = _discoveredDevices.any((d) => d.address == device.address);
-    if (exists) return;
+  // когда добавим обновление сканирования
+  // void _addObdDeviceToTop(ObdDevice device) {
+  //   final exists = _discoveredDevices.any((d) => d.address == device.address);
+  //   if (exists) return;
 
-    _discoveredDevices.insert(0, device);
-  }
+  //   _discoveredDevices.insert(0, device);
+  // }
 
   Future<bool> startScan() async {
     if (_isScanning) return true;
@@ -115,17 +117,25 @@ class BluetoothProvider extends ChangeNotifier {
     _discoveredDevices.clear();
     _deviceMap.clear();
 
-    if (_isConnected && _connectedDevice != null) {
-      _addObdDeviceToTop(_connectedDevice!);
-    }
+    /// добавить когда в ui появиться кнопка обновления
+    /// if (_isConnected && _connectedDevice != null) {
+    ///   _addObdDeviceToTop(_connectedDevice!);
+    /// }
     notifyListeners();
 
     try {
-      final bonded = await _bluetooth.bondedDevices ?? [];
-      for (final device in bonded) {
-        _addDeviceToList(
-          device,
-          connected: _connectedDevice?.address == device.address,
+      try {
+        final bonded = await _bluetooth.bondedDevices;
+        if (bonded != null) {
+          for (final device in bonded) {
+            _addDeviceToList(device);
+          }
+        }
+      } catch (e) {
+        developer.log(
+          "Ошибка получения bonded devices",
+          name: 'reBlue',
+          error: e,
         );
       }
 
@@ -135,17 +145,25 @@ class BluetoothProvider extends ChangeNotifier {
       developer.log("Сканирование запущено", name: 'reBlue');
 
       await _scanSubscription?.cancel();
-      _scanSubscription = _bluetooth.scanResults.listen((
-        BluetoothDevice device,
-      ) {
-        if (!_deviceMap.containsKey(device.address)) {
-          _addDeviceToList(
-            device,
-            connected: _connectedDevice?.address == device.address,
+      _scanSubscription = _bluetooth.scanResults.listen(
+        (BluetoothDevice device) {
+          if (!_deviceMap.containsKey(device.address)) {
+            _addDeviceToList(
+              device,
+              connected: _connectedDevice?.address == device.address,
+            );
+            notifyListeners();
+          }
+        },
+        onError: (err) {
+          developer.log(
+            "Ошибка в стриме сканирования",
+            name: 'reBlue',
+            error: err,
           );
-          notifyListeners();
-        }
-      });
+          _stopScan();
+        },
+      );
 
       _scanTimer?.cancel();
       _scanTimer = Timer(const Duration(seconds: 15), () {
@@ -185,8 +203,8 @@ class BluetoothProvider extends ChangeNotifier {
 
     await disconnect();
 
-    final btDevice = _deviceMap[device.address];
-    if (btDevice == null) {
+    final physicalDevice = _deviceMap[device.address];
+    if (physicalDevice == null) {
       _isConnecting = false;
       notifyListeners();
       return false;
@@ -198,9 +216,9 @@ class BluetoothProvider extends ChangeNotifier {
         name: 'reBlue',
       );
 
-      await _bluetooth.bondDevice(btDevice.address);
+      await _bluetooth.bondDevice(physicalDevice.address);
       _connection = await _bluetooth
-          .connect(btDevice.address)
+          .connect(physicalDevice.address)
           .timeout(const Duration(seconds: 15));
 
       _connectedDevice = device;
