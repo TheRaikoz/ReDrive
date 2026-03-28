@@ -31,6 +31,18 @@ class BluetoothProvider extends ChangeNotifier {
   StreamSubscription<Uint8List>? _inputSubscription;
   StreamSubscription<BluetoothDevice>? _scanSubscription;
 
+  /// отвечает за подключение, где айдишник отвечает
+  /// за подключение, если пользовтель нажмёт отмену,
+  /// и начнёт подключаться к другому, под капотомо
+  /// оно может ещё грузиться и если айдишник не = айди вызова
+  /// подключения на тот момент, то ничего не произойдёт
+  int _connectionId = 0;
+
+  /// вывод статусы подключения в loader
+  /// при попытке подключения к устройству
+  String _connectionMessage = "";
+  String get connectionMessage => _connectionMessage;
+
   Timer? _scanTimer;
 
   bool _isHardwareOn = false;
@@ -195,10 +207,16 @@ class BluetoothProvider extends ChangeNotifier {
     }
     if (_isConnecting) return false;
 
+    _connectionId++;
+    final int currentId = _connectionId;
+
     _isConnecting = true;
+    _connectionMessage = "Подключение к ${device.name}...";
     notifyListeners();
 
     await disconnect();
+
+    if (currentId != _connectionId) return false;
 
     final physicalDevice = _deviceMap[device.address];
     if (physicalDevice == null) {
@@ -214,10 +232,22 @@ class BluetoothProvider extends ChangeNotifier {
       );
 
       await _bluetooth.bondDevice(physicalDevice.address);
-      _connection = await _bluetooth
+
+      if (currentId != _connectionId) return false;
+
+      _connectionMessage = "Обмен данными...";
+      notifyListeners();
+
+      final newSocket = await _bluetooth
           .connect(physicalDevice.address)
           .timeout(const Duration(seconds: 15));
 
+      if (currentId != _connectionId) {
+        developer.log("Призрак соединения убит ПОСЛЕ коннекта", name: 'reBlue');
+        await newSocket?.finish();
+        return false;
+      }
+      _connection = newSocket;
       _connectedDevice = device;
       _isConnected = true;
       _setupListen();
@@ -229,6 +259,7 @@ class BluetoothProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
+      if (currentId != _connectionId) return false;
       developer.log(
         "❌ Ошибка подключения к ${device.name}: $e",
         name: 'reBlue',
@@ -249,8 +280,10 @@ class BluetoothProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     } finally {
-      _isConnecting = false;
-      notifyListeners();
+      if (currentId == _connectionId) {
+        _isConnecting = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -286,6 +319,14 @@ class BluetoothProvider extends ChangeNotifier {
     _connectedDevice = null;
     _isConnecting = false;
     notifyListeners();
+  }
+
+  void cancelConnection() {
+    _connectionId++;
+    _isConnecting = false;
+    disconnect();
+    notifyListeners();
+    developer.log("Подключение отменено пользователем", name: 'reBlue');
   }
 
   Future<void> turnOffBluetooth() async {
