@@ -5,6 +5,10 @@ import 'package:flutter_blue_classic/flutter_blue_classic.dart';
 import 'package:redrive/services/bluetooth_permission_service.dart';
 import '../models/obd_device.dart';
 
+/// [BluetoothProvider] — центральный узел управления Classic Bluetooth (SPP).
+///
+/// Обеспечивает жизненный цикл соединений: от сканирования до обмена данными.
+/// Реализует защиту от race conditions с помощью системы уникальных ID вызовов.
 class BluetoothProvider extends ChangeNotifier {
   final FlutterBlueClassic _bluetooth = FlutterBlueClassic();
 
@@ -53,6 +57,7 @@ class BluetoothProvider extends ChangeNotifier {
 
   bool _pendingScan = false;
 
+  /// =подписка на состояние Bluetooth адаптера системы
   BluetoothProvider() {
     _bluetooth.adapterStateNow.then((BluetoothAdapterState state) {
       _isHardwareOn = state == BluetoothAdapterState.on;
@@ -80,6 +85,7 @@ class BluetoothProvider extends ChangeNotifier {
     });
   }
 
+  /// Добавляет новое устройство в список, фильтруя дубликаты
   void _addDeviceToList(BluetoothDevice device, {bool connected = false}) {
     if (_deviceMap.containsKey(device.address)) return;
 
@@ -93,6 +99,7 @@ class BluetoothProvider extends ChangeNotifier {
     );
   }
 
+  /// Сканирование блютуз в округе
   Future<bool> startScan() async {
     if (_isScanning) return true;
 
@@ -191,6 +198,7 @@ class BluetoothProvider extends ChangeNotifier {
     return true;
   }
 
+  /// Останавливает сканирование и сбрасывает связанные таймеры и подписки
   Future<void> _stopScan() async {
     _scanTimer?.cancel();
     _bluetooth.stopScan();
@@ -201,6 +209,7 @@ class BluetoothProvider extends ChangeNotifier {
     developer.log("Сканирование остановлено", name: 'reBlue');
   }
 
+  /// Основной метод подключения к OBD2
   Future<bool> connectToDevice(ObdDevice device) async {
     if (_isConnected && _connectedDevice?.address == device.address) {
       return true;
@@ -216,6 +225,7 @@ class BluetoothProvider extends ChangeNotifier {
 
     await disconnect();
 
+    // проверка легитимности процесса после разрыва старого сокета
     if (currentId != _connectionId) return false;
 
     final physicalDevice = _deviceMap[device.address];
@@ -242,11 +252,13 @@ class BluetoothProvider extends ChangeNotifier {
           .connect(physicalDevice.address)
           .timeout(const Duration(seconds: 15));
 
+      // если id изменился, закрываем новый сокет и выходим
       if (currentId != _connectionId) {
         developer.log("Призрак соединения убит ПОСЛЕ коннекта", name: 'reBlue');
         await newSocket?.finish();
         return false;
       }
+
       _connection = newSocket;
       _connectedDevice = device;
       _isConnected = true;
@@ -287,6 +299,7 @@ class BluetoothProvider extends ChangeNotifier {
     }
   }
 
+  /// Настраивает прослушивание входного потока данных от обд сканера
   void _setupListen() {
     _inputSubscription = _connection!.input!.listen(
       (Uint8List data) {
@@ -305,6 +318,7 @@ class BluetoothProvider extends ChangeNotifier {
     );
   }
 
+  /// Полностью закрывает соединение и освобождает ресурсы стримов
   Future<void> disconnect() async {
     try {
       await _inputSubscription?.cancel();
@@ -321,6 +335,7 @@ class BluetoothProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Метод отмены: прерывает текущую попытку коннекта и уведомляет UI
   void cancelConnection() {
     _connectionId++;
     _isConnecting = false;
@@ -329,6 +344,7 @@ class BluetoothProvider extends ChangeNotifier {
     developer.log("Подключение отменено пользователем", name: 'reBlue');
   }
 
+  /// Полное выключение БЛЮТУЗА в приложении
   Future<void> turnOffBluetooth() async {
     _isToggleOn = false;
     await disconnect();
