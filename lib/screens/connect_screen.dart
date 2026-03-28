@@ -283,26 +283,121 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-          if (!isConnected && !provider.isConnecting) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text("Подключение к ${device.name}..."),
-                duration: const Duration(seconds: 1),
-              ),
+          if (isConnected) {
+            return;
+          }
+
+          if (!provider.isConnecting) {
+            bool isCanceled = false;
+
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (dialogContext) {
+                return PopScope(
+                  canPop: false,
+                  child: AlertDialog(
+                    insetPadding: const EdgeInsets.symmetric(horizontal: 60),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHigh,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+
+                    contentPadding: EdgeInsets.zero,
+                    content: SizedBox(
+                      height: 220,
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SizedBox(
+                              width: 55,
+                              height: 55,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 4.5,
+                              ),
+                            ),
+
+                            Consumer<BluetoothProvider>(
+                              builder: (context, bp, child) {
+                                return Text(
+                                  bp.connectionMessage,
+                                  textAlign: TextAlign.center,
+                                  textScaler: TextScaler.noScaling,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                );
+                              },
+                            ),
+
+                            Padding(
+                              padding: EdgeInsetsGeometry.only(
+                                left: 26,
+                                right: 26,
+                                bottom: 8,
+                              ),
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: 40,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    isCanceled = true;
+                                    provider.cancelConnection();
+                                    Navigator.pop(dialogContext);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(100),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Отмена",
+                                    textScaler: TextScaler.noScaling,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
 
-            bool success = await provider.connectToDevice(device);
+            final success = await provider.connectToDevice(device);
 
-            if (!success && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    "Устройство '${device.name}' недоступно или выключено",
+            if (!isCanceled && mounted) {
+              Navigator.pop(context);
+
+              if (!success) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Ошибка: '${device.name}' не отвечает"),
+                    backgroundColor: Theme.of(context).colorScheme.error,
                   ),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
+                );
+              }
             }
           }
         },
@@ -358,7 +453,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     );
   }
 
-  /// кнопка обновить внизу списка если юзеру вдруг захочется чёто там себе обновить хотя хреен знает зачем но пусть будет :)
+  /// кнопка обновить внизу списка если юзеру вдруг захочется чёто
+  ///  там себе обновить хотя хреен знает зачем но пусть будет :)
   Widget _buildFooterRefreshButton(BluetoothProvider provider) {
     return Material(
       color: Colors.transparent,

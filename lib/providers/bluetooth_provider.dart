@@ -221,11 +221,14 @@ class BluetoothProvider extends ChangeNotifier {
 
     _isConnecting = true;
     _connectionMessage = "Подключение к ${device.name}...";
+
     notifyListeners();
+
+    await Future.delayed(const Duration(milliseconds: 500));
 
     await disconnect();
 
-    // проверка легитимности процесса после разрыва старого сокета
+    // проверка процесса после разрыва старого сокета
     if (currentId != _connectionId) return false;
 
     final physicalDevice = _deviceMap[device.address];
