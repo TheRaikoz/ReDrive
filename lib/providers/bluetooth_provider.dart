@@ -81,14 +81,6 @@ class BluetoothProvider extends ChangeNotifier {
     );
   }
 
-  // когда добавим обновление сканирования
-  // void _addObdDeviceToTop(ObdDevice device) {
-  //   final exists = _discoveredDevices.any((d) => d.address == device.address);
-  //   if (exists) return;
-
-  //   _discoveredDevices.insert(0, device);
-  // }
-
   Future<bool> startScan() async {
     if (_isScanning) return true;
 
@@ -114,13 +106,18 @@ class BluetoothProvider extends ChangeNotifier {
     _isToggleOn = true;
     _isScanning = true;
     _pendingScan = false;
+
+    final activePhysicalDevice = (_isConnected && _connectedDevice != null)
+        ? _deviceMap[_connectedDevice!.address]
+        : null;
+
     _discoveredDevices.clear();
     _deviceMap.clear();
 
-    /// добавить когда в ui появиться кнопка обновления
-    /// if (_isConnected && _connectedDevice != null) {
-    ///   _addObdDeviceToTop(_connectedDevice!);
-    /// }
+    if (activePhysicalDevice != null && _connectedDevice != null) {
+      _deviceMap[activePhysicalDevice.address] = activePhysicalDevice;
+      _discoveredDevices.add(_connectedDevice!);
+    }
     notifyListeners();
 
     try {
