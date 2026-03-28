@@ -45,7 +45,6 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                 _bluetoothButton(bluetoothProvider, isToggleOn),
 
                 const SizedBox(height: 20),
-                const SizedBox(height: 18),
               ],
             ),
           ),
@@ -109,7 +108,9 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                                 textScaler: TextScaler.noScaling,
                                 provider.isScanning
                                     ? "Поиск устройств..."
-                                    : "Нажмите для поиска",
+                                    : (isToggleOn
+                                          ? "Поиск завершен"
+                                          : "Нажмите для поиска"),
                                 style: TextStyle(
                                   color: Theme.of(
                                     context,
@@ -183,17 +184,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                     top: 8,
                     bottom: 16,
                   ),
-                  child:
-                      provider.isScanning && provider.discoveredDevices.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
-                        )
-                      : Column(
-                          children: provider.discoveredDevices.map((device) {
-                            return _buildDeviceItem(device, provider);
-                          }).toList(),
-                        ),
+                  child: _buildPanelContent(provider),
                 ),
               ],
             ],
@@ -201,6 +192,80 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildPanelContent(BluetoothProvider provider) {
+    /// Если идёт сканирование и нет устройств
+    if (provider.isScanning && provider.discoveredDevices.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24.0),
+        child: CircularProgressIndicator(),
+      );
+    }
+    /// Если сканирование было завершено и небыло найдено ни одного устройства ( спаренного или в округе )
+    else if (!provider.isScanning && provider.discoveredDevices.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Column(
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 42,
+              color: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Устройства не найдены",
+              textScaler: TextScaler.noScaling,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: EdgeInsetsGeometry.symmetric(horizontal: 16),
+              child: Text(
+                "Убедитесь, что сканер подключен к разъему, а зажигание включено",
+                textAlign: TextAlign.center,
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface.withAlpha(150),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => provider.startScan(),
+              icon: const Icon(Icons.refresh),
+              label: const Text(
+                textScaler: TextScaler.noScaling,
+                "Найти снова",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    /// Если устройства найдены показываем список с ними
+    else {
+      return Column(
+        children: [
+          ...provider.discoveredDevices.map((device) {
+            return _buildDeviceItem(device, provider);
+          }),
+          const SizedBox(height: 8),
+          _buildFooterRefreshButton(provider),
+        ],
+      );
+    }
   }
 
   Widget _buildDeviceItem(ObdDevice device, BluetoothProvider provider) {
@@ -293,104 +358,58 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
     );
   }
 
-  // Widget _wifiButton() {
-  //   return Container(
-  //     width: double.infinity,
-  //     height: 140,
-  //     decoration: BoxDecoration(
-  //       borderRadius: BorderRadius.circular(36),
-  //       color: Theme.of(context).colorScheme.surfaceContainer,
-  //       border: Border.all(
-  //         width: 2,
-  //         color: Theme.of(context).colorScheme.outlineVariant,
-  //       ),
-  //     ),
-  //     child: ClipRRect(
-  //       borderRadius: BorderRadiusGeometry.circular(36),
-  //       child: Material(
-  //         color: Colors.transparent,
-  //         child: InkWell(
-  //           onTap: () => setState(() {
-  //             wifiToggle = !wifiToggle;
-  //             // bluetooth conenction callable
-  //           }),
-  //           child: Padding(
-  //             padding: const EdgeInsets.only(left: 36, right: 36),
-  //             child: Row(
-  //               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //               children: [
-  //                 Column(
-  //                   mainAxisAlignment: MainAxisAlignment.center,
-  //                   crossAxisAlignment: CrossAxisAlignment.start,
-  //                   children: [
-  //                     AnimatedDefaultTextStyle(
-  //                       duration: const Duration(milliseconds: 170),
-  //                       curve: Curves.easeInOut,
-  //                       style: TextStyle(
-  //                         fontSize: 19,
-  //                         fontWeight: FontWeight.w800,
-  //                         color: wifiToggle
-  //                             ? Theme.of(context).colorScheme.primary
-  //                             : Theme.of(context).colorScheme.onSurface,
-  //                       ),
-  //                       child: const Text("Wifi"),
-  //                     ),
-  //                     Text(
-  //                       "Поиск устройств...",
-  //                       style: TextStyle(
-  //                         color: Theme.of(
-  //                           context,
-  //                         ).colorScheme.onSurface.withAlpha(150),
-  //                         fontWeight: FontWeight.w800,
-  //                         fontSize: 10.5,
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-
-  //                 //bluetooth switch
-  //                 AnimatedContainer(
-  //                   duration: const Duration(milliseconds: 200),
-  //                   curve: Curves.easeInOut,
-  //                   width: 80,
-  //                   height: 45,
-  //                   decoration: BoxDecoration(
-  //                     color: wifiToggle
-  //                         ? Theme.of(context).colorScheme.primary
-  //                         : Theme.of(context).colorScheme.outlineVariant,
-  //                     borderRadius: BorderRadius.circular(100),
-  //                   ),
-  //                   child: AnimatedAlign(
-  //                     duration: const Duration(milliseconds: 200),
-  //                     curve: Curves.easeInOut,
-  //                     alignment: wifiToggle
-  //                         ? Alignment.centerRight
-  //                         : Alignment.centerLeft,
-  //                     child: Padding(
-  //                       padding: const EdgeInsets.symmetric(horizontal: 8),
-  //                       child: AnimatedContainer(
-  //                         duration: const Duration(milliseconds: 220),
-  //                         curve: Curves.easeInOut,
-  //                         width: 30,
-  //                         height: 30,
-  //                         decoration: BoxDecoration(
-  //                           color: wifiToggle
-  //                               ? Theme.of(context).colorScheme.outline
-  //                               : Theme.of(
-  //                                   context,
-  //                                 ).colorScheme.outline.withAlpha(100),
-  //                           shape: BoxShape.circle,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ),
-  //                 ),
-  //               ],
-  //             ),
-  //           ),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
+  /// кнопка обновить внизу списка если юзеру вдруг захочется чёто там себе обновить хотя хреен знает зачем но пусть будет :)
+  Widget _buildFooterRefreshButton(BluetoothProvider provider) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: provider.isScanning ? null : () => provider.startScan(),
+        borderRadius: BorderRadius.circular(100),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withAlpha(80),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withAlpha(100),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (provider.isScanning)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Icon(
+                  Icons.refresh,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              const SizedBox(width: 8),
+              Text(
+                provider.isScanning ? "Обновление..." : "Обновить список",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: provider.isScanning
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
