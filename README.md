@@ -1,16 +1,70 @@
-# redrive
+# ReDrive
 
-A new Flutter project.
+![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=flat&logo=Flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-%230175C2.svg?style=flat&logo=dart&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Contributions welcome](https://img.shields.io/badge/contributions-welcome-orange.svg)
 
-## Getting Started
+**ReDrive** — это современный, молниеносный OBD2-дашборд с открытым исходным кодом, созданный для водителей. 
 
-This project is a starting point for a Flutter application.
+Большинство существующих сканеров перегружены лишними меню, медленно обновляют данные и требуют постоянного внимания при обрывах связи. ReDrive решает эту проблему: мы фокусируемся на **максимальной скорости отклика (low latency)**, **стабильности соединения** и **UI/UX, который не отвлекает от дороги**.
 
-A few resources to get you started if this is your first Flutter project:
+---
+## Скриншоты
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+|                   Главный Дашборд                   |        Подключение        |         Настройки         |
+| :-------------------------------------------------: | :-----------------------: | :-----------------------: |
+| <img src="link_to_dashboard_image.png" width="250"> |           soon            |           soon            |
+|          *Крупные шрифты, ничего лишнего*           | *Умный статус с ретраями* | *Гибкая конфигурация PID* |
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+## 🔥 Ключевые особенности
+
+* **Мгновенный отклик:** Оптимизированный цикл опроса OBD2-адаптера (ELM327) минимизирует задержку между нажатием на педаль и обновлением графика.
+* **Умное удержание связи (Smart Reconnect):** Беспроводные сети в автомобиле нестабильны. ReDrive использует политику автоматического переподключения (3 попытки с задержкой), скрывая мелкие обрывы от пользователя.
+* **Driver-First UI:** Интерфейс, с которым можно взаимодействовать боковым зрением. Никаких мелких кнопок и сложных свайпов во время движения.
+* **Кастомизация:** Вывод только тех датчиков (PIDs), которые нужны именно вам (Обороты, Температура Двигателя, Давление наддува и другие).
+
+---
+## 🛠 Технологический стек
+
+* **Framework:** Flutter / Dart
+* **Architecture: Vanilla State Management _(Planning to migrate to Riverpod/BLoC. Open to suggestions!)_
+* **Hardware Protocol:** ELM327 (Bluetooth / Wi-Fi)
+
+---
+## Как запустить локально
+
+Чтобы развернуть проект на своем компьютере и начать вносить изменения, выполните следующие шаги:
+### Требования
+* Установленный [Flutter SDK](https://docs.flutter.dev/get-started/install) (версия не ниже 3.10.4)
+* Android Studio или VS Code
+* Физическое устройство Android или эмулятор, либо IOs ( не проверялся )
+### Установка 
+Для начала работы клонируйте репозиторий на свой компьютер с помощью терминала
+```
+git clone https://github.com/iUnreallx/redrive.git
+```
+
+Затем перейдите в корневую директорию проекта для выполнения дальнейших команд
+```
+cd redrive
+```
+
+Установите все необходимые зависимости, проект автоматически подтянет зависимости
+```
+flutter pub get
+```
+
+Убедитесь, что ваше Android-устройство подключено с включенной отладкой по USB, и запустите приложение
+```
+flutter run
+```
+## 🤝 Контрибьютинг (Contributing)
+Мы приветствуем любую помощь! Если вы хотите улучшить ReDrive:
+1. Ознакомьтесь с текущими задачами на нашей [Issues](https://github.com/iUnreallx/ReDrive/issues).
+2. Создайте свою ветку (`git checkout -b feat/YourFeature`).
+3. Закоммитьте изменения.
+4. Откройте Pull Request.
+## 📄 Лицензия (License)
+Распространяется под лицензией MIT. Смотрите файл `LICENSE` для подробностей.
