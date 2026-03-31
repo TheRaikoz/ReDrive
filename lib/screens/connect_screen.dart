@@ -202,7 +202,8 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
         child: CircularProgressIndicator(),
       );
     }
-    /// Если сканирование было завершено и небыло найдено ни одного устройства ( спаренного или в округе )
+    /// Если сканирование было завершено и небыло
+    /// найдено ни одного устройства ( спаренного или в округе )
     else if (!provider.isScanning && provider.discoveredDevices.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0),
