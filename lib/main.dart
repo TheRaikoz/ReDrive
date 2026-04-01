@@ -30,11 +30,12 @@ class RedriveApp extends StatelessWidget {
       theme: AppThemes.darkTheme,
       home: const MainScreen(),
 
-      // === ГЛОБАЛЬНЫЙ UI: БАННЕР ПЕРЕПОДКЛЮЧЕНИЯ ===
+      /// банеер при отключение адаптера elm'ки появляется, трактуя
+      /// попытку переподключени к объекту
       builder: (context, child) {
         return Stack(
           children: [
-            if (child != null) child,
+            child!,
 
             Consumer<BluetoothProvider>(
               builder: (context, provider, _) {
