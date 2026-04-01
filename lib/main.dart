@@ -5,6 +5,7 @@ import 'providers/obd_provider.dart';
 import 'providers/bluetooth_provider.dart';
 import 'core/app_themes.dart';
 import 'screens/main_screen.dart';
+import 'widget/reconnection_banner.dart';
 
 void main() {
   runApp(
@@ -28,6 +29,40 @@ class RedriveApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppThemes.darkTheme,
       home: const MainScreen(),
+
+      // === ГЛОБАЛЬНЫЙ UI: БАННЕР ПЕРЕПОДКЛЮЧЕНИЯ ===
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+
+            Consumer<BluetoothProvider>(
+              builder: (context, provider, _) {
+                final isReconnecting = provider.isReconnectingBackground;
+                final message = provider.backgroundMessage;
+
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOutCubic,
+                  top: isReconnecting
+                      ? MediaQuery.of(context).padding.top + 10
+                      : -100,
+                  left: 16,
+                  right: 16,
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 300),
+                    opacity: isReconnecting ? 1.0 : 0.0,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ReconnectionBanner(message: message),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
