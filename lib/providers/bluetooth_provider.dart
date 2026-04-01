@@ -137,6 +137,12 @@ class BluetoothProvider extends ChangeNotifier {
       _deviceMap[activePhysicalDevice.address] = activePhysicalDevice;
       _discoveredDevices.add(_connectedDevice!);
     }
+
+    //////
+    // _discoveredDevices.add(
+    //   ObdDevice(name: "кутик в прайме", address: "asdlasdllsalda"),
+    // );
+    //////
     notifyListeners();
 
     try {
@@ -237,69 +243,85 @@ class BluetoothProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-
-    try {
-      developer.log(
-        "Попытка подключения к ${device.name} (${device.address})",
-        name: 'reBlue',
-      );
-
-      await _bluetooth.bondDevice(physicalDevice.address);
-
-      if (currentId != _connectionId) return false;
-
-      _connectionMessage = "Обмен данными...";
-      notifyListeners();
-
-      final newSocket = await _bluetooth
-          .connect(physicalDevice.address)
-          .timeout(const Duration(seconds: 15));
-
-      // если id изменился, закрываем новый сокет и выходим
-      if (currentId != _connectionId) {
-        developer.log("Призрак соединения убит ПОСЛЕ коннекта", name: 'reBlue');
-        await newSocket?.finish();
-        return false;
-      }
-
-      _connection = newSocket;
-      _connectedDevice = device;
-      _isConnected = true;
-      _setupListen();
-
-      _discoveredDevices.removeWhere((d) => d.address == device.address);
-      _discoveredDevices.insert(0, device);
-
-      developer.log("✅ УСПЕШНО подключено к ${device.name}", name: 'reBlue');
-      notifyListeners();
-      return true;
-    } catch (e) {
-      if (currentId != _connectionId) return false;
-      developer.log(
-        "❌ Ошибка подключения к ${device.name}: $e",
-        name: 'reBlue',
-        error: e,
-      );
-
-      if (e.toString().contains("read failed") ||
-          e.toString().contains("socket") ||
-          e.toString().contains("couldNotConnect")) {
+    for (int i = 1; i <= 3; i++) {
+      try {
         developer.log(
-          "Классическая ошибка Android BT (таймаут или занято)",
+          "Попытка подключения к ${device.name} (${device.address}) №$i",
           name: 'reBlue',
         );
-      }
 
-      _isConnected = false;
-      _connectedDevice = null;
-      notifyListeners();
-      return false;
-    } finally {
-      if (currentId == _connectionId) {
-        _isConnecting = false;
+        await _bluetooth.bondDevice(physicalDevice.address);
+
+        if (currentId != _connectionId) return false;
+
+        if (i > 1) {
+          _connectionMessage = "Попытка подключения №$i";
+        } else {
+          _connectionMessage = "Обмен данными...";
+        }
         notifyListeners();
+
+        final newSocket = await _bluetooth
+            .connect(physicalDevice.address)
+            .timeout(const Duration(seconds: 5));
+
+        // если id изменился, закрываем новый сокет и выходим
+        if (currentId != _connectionId) {
+          developer.log(
+            "Призрак соединения убит ПОСЛЕ коннекта",
+            name: 'reBlue',
+          );
+          await newSocket?.finish();
+          return false;
+        }
+
+        _connection = newSocket;
+        _connectedDevice = device;
+        _isConnected = true;
+        _setupListen();
+
+        _discoveredDevices.removeWhere((d) => d.address == device.address);
+        _discoveredDevices.insert(0, device);
+
+        developer.log("✅ УСПЕШНО подключено к ${device.name}", name: 'reBlue');
+        if (currentId == _connectionId) {
+          _isConnecting = false;
+        }
+        notifyListeners();
+        return true;
+      } catch (e) {
+        developer.log(
+          "❌ Ошибка подключения к ${device.name}: $e",
+          name: 'reBlue',
+          error: e,
+        );
+
+        if (e.toString().contains("read failed") ||
+            e.toString().contains("socket") ||
+            e.toString().contains("couldNotConnect")) {
+          developer.log(
+            "Классическая ошибка Android BT (таймаут или занято)",
+            name: 'reBlue',
+          );
+        }
+
+        if (currentId != _connectionId) return false;
+        if (i < 3) {
+          await Future.delayed(const Duration(milliseconds: 2000));
+        } else {
+          _isConnected = false;
+          _connectedDevice = null;
+          notifyListeners();
+          return false;
+        }
+      } finally {
+        if (currentId == _connectionId) {
+          _isConnecting = false;
+          notifyListeners();
+        }
       }
     }
+    ;
   }
 
   /// Настраивает прослушивание входного потока данных от обд сканера
