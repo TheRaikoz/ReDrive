@@ -47,6 +47,12 @@ class BluetoothProvider extends ChangeNotifier {
   String _connectionMessage = "";
   String get connectionMessage => _connectionMessage;
 
+  String _backgroundMessage = "";
+  String get backgroundMessage => _backgroundMessage;
+
+  bool _isReconnectingBackground = false;
+  bool get isReconnectingBackground => _isReconnectingBackground;
+
   Timer? _scanTimer;
 
   bool _isHardwareOn = false;
@@ -323,18 +329,18 @@ class BluetoothProvider extends ChangeNotifier {
       },
       onDone: () {
         developer.log("Поток данных закрыт (onDone)", name: 'reBlue');
-        disconnect();
+        disconnect(isIntentional: false);
       },
       onError: (e) {
         developer.log("Ошибка в потоке данных", name: 'reBlue', error: e);
-        disconnect();
+        disconnect(isIntentional: false);
       },
       cancelOnError: true,
     );
   }
 
   /// Полностью закрывает соединение и освобождает ресурсы стримов
-  Future<void> disconnect() async {
+  Future<void> disconnect({bool isIntentional = true}) async {
     try {
       await _inputSubscription?.cancel();
       await _connection?.finish();
@@ -344,10 +350,65 @@ class BluetoothProvider extends ChangeNotifier {
       developer.log("Ошибка при отключении: $e", name: 'reBlue', error: e);
     }
 
-    _isConnected = false;
-    _connectedDevice = null;
-    _isConnecting = false;
+    if (isIntentional) {
+      _isConnected = false;
+      _connectedDevice = null;
+      _isConnecting = false;
+      notifyListeners();
+    } else {
+      _startBackgroundReconnect();
+    }
+  }
+
+  Future<void> _startBackgroundReconnect() async {
+    if (_connectedDevice == null) return;
+
+    _connectionId++;
+    final int currentId = _connectionId;
+
+    _isReconnectingBackground = true;
+    _backgroundMessage = "переподключение...";
     notifyListeners();
+
+    final physicalDevice = _deviceMap[_connectedDevice!.address];
+    if (physicalDevice == null) {
+      _isReconnectingBackground = false;
+      disconnect(isIntentional: true);
+      return;
+    }
+
+    for (int i = 1; i <= 3; i++) {
+      try {
+        await Future.delayed(Duration(milliseconds: 2000));
+
+        if (currentId != _connectionId) return;
+        _backgroundMessage = "переподключение... №$i";
+        notifyListeners();
+
+        final oldSocket = await _bluetooth
+            .connect(physicalDevice.address)
+            .timeout(const Duration(seconds: 5));
+
+        if (currentId != _connectionId) {
+          await oldSocket?.finish();
+          return;
+        }
+
+        _connection = oldSocket;
+        _isConnected = true;
+        _isReconnectingBackground = false;
+        _setupListen();
+        notifyListeners();
+        return;
+      } catch (e) {
+        developer.log("переподключение аварийное №$i", name: "reBlue");
+        if (currentId != _connectionId) return;
+        if (i == 3) {
+          _isReconnectingBackground = false;
+          await disconnect();
+        }
+      }
+    }
   }
 
   /// Метод отмены: прерывает текущую попытку коннекта и уведомляет UI
