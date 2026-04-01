@@ -323,9 +323,9 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                             ),
 
                             Consumer<BluetoothProvider>(
-                              builder: (context, bp, child) {
+                              builder: (context, bluetoothprovider, child) {
                                 return Text(
-                                  bp.connectionMessage,
+                                  bluetoothprovider.connectionMessage,
                                   textAlign: TextAlign.center,
                                   textScaler: TextScaler.noScaling,
                                   style: const TextStyle(
