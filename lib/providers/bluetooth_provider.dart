@@ -231,6 +231,8 @@ class BluetoothProvider extends ChangeNotifier {
     _connectionId++;
     final int currentId = _connectionId;
 
+    _isReconnectingBackground = false;
+
     _isConnecting = true;
     _connectionMessage = "Подключение к ${device.name}...";
 
@@ -261,7 +263,7 @@ class BluetoothProvider extends ChangeNotifier {
         if (currentId != _connectionId) return false;
 
         if (i > 1) {
-          _connectionMessage = "Попытка подключения №$i";
+          _connectionMessage = "Попытка подключения №${i - 1}";
         } else {
           _connectionMessage = "Обмен данными...";
         }
@@ -425,6 +427,7 @@ class BluetoothProvider extends ChangeNotifier {
   void cancelConnection() {
     _connectionId++;
     _isConnecting = false;
+    _isReconnectingBackground = false;
     disconnect();
     notifyListeners();
     developer.log("Подключение отменено пользователем", name: 'reBlue');
