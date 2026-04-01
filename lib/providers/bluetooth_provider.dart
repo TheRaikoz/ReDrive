@@ -381,7 +381,7 @@ class BluetoothProvider extends ChangeNotifier {
 
     for (int i = 1; i <= 3; i++) {
       try {
-        await Future.delayed(Duration(milliseconds: 2000));
+        await Future.delayed(Duration(milliseconds: 4000));
 
         if (currentId != _connectionId) {
           _isReconnectingBackground = false;
