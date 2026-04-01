@@ -138,11 +138,11 @@ class BluetoothProvider extends ChangeNotifier {
       _discoveredDevices.add(_connectedDevice!);
     }
 
-    //////
-    // _discoveredDevices.add(
-    //   ObdDevice(name: "кутик в прайме", address: "asdlasdllsalda"),
-    // );
-    //////
+    ////
+    _discoveredDevices.add(
+      ObdDevice(name: "кутик в прайме", address: "asdlasdllsalda"),
+    );
+    ////
     notifyListeners();
 
     try {
@@ -296,32 +296,22 @@ class BluetoothProvider extends ChangeNotifier {
           error: e,
         );
 
-        if (e.toString().contains("read failed") ||
-            e.toString().contains("socket") ||
-            e.toString().contains("couldNotConnect")) {
-          developer.log(
-            "Классическая ошибка Android BT (таймаут или занято)",
-            name: 'reBlue',
-          );
-        }
-
         if (currentId != _connectionId) return false;
         if (i < 3) {
           await Future.delayed(const Duration(milliseconds: 2000));
         } else {
           _isConnected = false;
           _connectedDevice = null;
+          _isConnecting = false;
           notifyListeners();
           return false;
         }
-      } finally {
-        if (currentId == _connectionId) {
-          _isConnecting = false;
-          notifyListeners();
-        }
       }
     }
-    ;
+
+    _isConnecting = false;
+    notifyListeners();
+    return false;
   }
 
   /// Настраивает прослушивание входного потока данных от обд сканера
