@@ -381,7 +381,11 @@ class BluetoothProvider extends ChangeNotifier {
       try {
         await Future.delayed(Duration(milliseconds: 2000));
 
-        if (currentId != _connectionId) return;
+        if (currentId != _connectionId) {
+          _isReconnectingBackground = false;
+          notifyListeners();
+          return;
+        }
         _backgroundMessage = "переподключение... №$i";
         notifyListeners();
 
@@ -391,6 +395,8 @@ class BluetoothProvider extends ChangeNotifier {
 
         if (currentId != _connectionId) {
           await oldSocket?.finish();
+          _isReconnectingBackground = false;
+          notifyListeners();
           return;
         }
 
@@ -402,7 +408,11 @@ class BluetoothProvider extends ChangeNotifier {
         return;
       } catch (e) {
         developer.log("переподключение аварийное №$i", name: "reBlue");
-        if (currentId != _connectionId) return;
+        if (currentId != _connectionId) {
+          _isReconnectingBackground = false;
+          notifyListeners();
+          return;
+        }
         if (i == 3) {
           _isReconnectingBackground = false;
           await disconnect();
