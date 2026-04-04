@@ -35,6 +35,11 @@ class BluetoothProvider extends ChangeNotifier {
   StreamSubscription<Uint8List>? _inputSubscription;
   StreamSubscription<BluetoothDevice>? _scanSubscription;
 
+  // === ТРУБА ДЛЯ ДАННЫХ ===
+  // Через этот стрим ObdProvider будет получать ответы
+  final _rxController = StreamController<String>.broadcast();
+  Stream<String> get rxStream => _rxController.stream;
+
   /// отвечает за подключение, где айдишник отвечает
   /// за подключение, если пользовтель нажмёт отмену,
   /// и начнёт подключаться к другому, под капотомо
@@ -327,7 +332,7 @@ class BluetoothProvider extends ChangeNotifier {
     _inputSubscription = _connection!.input!.listen(
       (Uint8List data) {
         final incoming = String.fromCharCodes(data);
-        developer.log("RX: $incoming", name: 'reBlue');
+        _rxController.add(incoming);
       },
       onDone: () {
         developer.log("Поток данных закрыт (onDone)", name: 'reBlue');
@@ -339,6 +344,18 @@ class BluetoothProvider extends ChangeNotifier {
       },
       cancelOnError: true,
     );
+  }
+
+  void sendCommand(String command) {
+    if (!_isConnected || _connection == null) return;
+
+    try {
+      // Команда превращается в байты и отправляется в сокет.
+      // '\r' в конце — это стандарт ELM327 (как нажатие Enter),
+      _connection!.output.add(Uint8List.fromList('$command\r'.codeUnits));
+    } catch (e) {
+      developer.log("Ошибка отправки: $e");
+    }
   }
 
   /// Полностью закрывает соединение и освобождает ресурсы стримов
