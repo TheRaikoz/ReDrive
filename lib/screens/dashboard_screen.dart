@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
+import 'package:redrive/providers/bluetooth_provider.dart';
 import '../providers/obd_provider.dart';
+import 'dart:developer' as developer;
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -12,8 +14,6 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool isToggledConnection = false;
-
   @override
   Widget build(BuildContext context) {
     final obdData = context.watch<ObdProvider>().data;
@@ -258,6 +258,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildConnectionContainer() {
     final colorScheme = Theme.of(context).colorScheme;
+    final blueProvider = context.watch<BluetoothProvider>();
+    final obdProvider = context.watch<ObdProvider>();
+
+    final bool isActive = obdProvider.isRealMode;
+    final bool isConnected = blueProvider.isConnected;
 
     return Container(
       width: double.infinity,
@@ -272,8 +277,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () =>
-                setState(() => isToggledConnection = !isToggledConnection),
+            onTap: () {
+              if (isConnected) {
+                obdProvider.toggleRealMode();
+              } else {
+                /// короче вот тут надо сделать либо пересылку на экран с подключением
+                /// либо сделать свой авто-коннект помня последние попытки подключения
+                /// человека ( будь то блютуз, вайфай, провод )
+                /// и желательно делать при старте приложения?
+                /// или давать выбор между последними сеансами?
+                developer.log(
+                  "Bluetooth не подключен RealModeSection",
+                  name: 'UI',
+                );
+              }
+            },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(
@@ -308,7 +326,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: AnimatedAlign(
                       duration: const Duration(milliseconds: 200),
                       curve: Curves.easeInOut,
-                      alignment: isToggledConnection
+                      alignment: isActive
                           ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Padding(
