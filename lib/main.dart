@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:redrive/services/bluetooth_obd_connection.dart';
 import 'providers/obd_provider.dart';
 import 'providers/bluetooth_provider.dart';
 import 'core/app_themes.dart';
@@ -11,8 +12,13 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => ObdProvider()),
-        ChangeNotifierProvider(create: (context) => BluetoothProvider()),
+        ChangeNotifierProvider(create: (_) => BluetoothProvider()),
+
+        ChangeNotifierProvider(
+          create: (context) => ObdProvider(
+            BluetoothObdConnection(context.read<BluetoothProvider>()),
+          ),
+        ),
       ],
       child: const RedriveApp(),
     ),
@@ -30,8 +36,8 @@ class RedriveApp extends StatelessWidget {
       theme: AppThemes.darkTheme,
       home: const MainScreen(),
 
-      /// банеер при отключение адаптера elm'ки появляется, трактуя
-      /// попытку переподключени к объекту
+      /// баннер при отключении адаптера elm'ки появляется, трактуя
+      /// попытку переподключения к объекту
       builder: (context, child) {
         return Stack(
           children: [
