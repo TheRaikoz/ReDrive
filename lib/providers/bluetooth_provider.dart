@@ -346,6 +346,20 @@ class BluetoothProvider extends ChangeNotifier {
     );
   }
 
+  void sendCommand(String command) {
+    if (!_isConnected || _connection == null) return;
+
+    try {
+      // Команда превращается в байты и отправляется в сокет.
+      // '\r' в конце — это стандарт ELM327 (как нажатие Enter),
+      // без него сканер просто будет ждать и ничего не ответит.
+      _connection!.output.add(Uint8List.fromList('$command\r'.codeUnits));
+      developer.log("➡️ Отправлено: $command", name: 'reBlue');
+    } catch (e) {
+      developer.log("❌ Ошибка отправки команды: $e", name: 'reBlue');
+    }
+  }
+
   /// Полностью закрывает соединение и освобождает ресурсы стримов
   Future<void> disconnect({bool isIntentional = true}) async {
     try {
