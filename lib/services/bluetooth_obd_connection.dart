@@ -1,0 +1,28 @@
+import 'package:redrive/providers/bluetooth_provider.dart';
+import 'package:redrive/services/obd_connection.dart';
+
+class BluetoothObdConnection implements ObdConnection {
+  final BluetoothProvider provider;
+
+  BluetoothObdConnection(this.provider);
+
+  @override
+  Stream<String> get incoming => provider.rxStream;
+
+  @override
+  bool get isConnected => provider.isConnected;
+
+  @override
+  Future<void> send(String command) async {
+    provider.sendCommand(command);
+  }
+
+  /// DONT IMPLEMENTS!!!!!
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {
+    await provider.disconnect();
+  }
+}
