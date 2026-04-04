@@ -92,10 +92,10 @@ class ObdProvider extends ChangeNotifier {
       return;
     }
 
-    /// если был demo → выключаем
     if (_isDemoMode) {
       await _connection.disconnect();
       _isDemoMode = false;
+      _data = const ObdData();
     }
 
     _connection = realConnection;
