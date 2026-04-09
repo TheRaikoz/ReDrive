@@ -5,11 +5,19 @@ import '../models/obd_data.dart';
 import '../services/obd_connection.dart';
 import '../services/demo_obd_connection.dart';
 
+enum ObdConnectionState { disconnected, initializing, ready, error }
+
 class ObdProvider extends ChangeNotifier {
   final ObdConnection realConnection;
   late ObdConnection _connection;
 
   StreamSubscription<String>? _rxSubscription;
+
+  Completer<String>? _initCompleter;
+  final StringBuffer _initBuffer = StringBuffer();
+
+  ObdConnectionState _state = ObdConnectionState.disconnected;
+  ObdConnectionState get state => _state;
 
   ObdData _data = const ObdData();
   ObdData get data => _data;
@@ -21,6 +29,15 @@ class ObdProvider extends ChangeNotifier {
   bool get isRealMode => _isRealMode;
 
   Timer? _pollTimer;
+
+  set state(ObdConnectionState value) {
+    if (_state == value) return;
+
+    developer.log('🔄 СМЕНА СОСТОЯНИЯ: $_state -> $value', name: 'ObdProvider');
+
+    _state = value;
+    notifyListeners();
+  }
 
   ObdProvider(this.realConnection) {
     _connection = realConnection;
@@ -36,6 +53,14 @@ class ObdProvider extends ChangeNotifier {
   /// ===================== ПАРСИНГ =====================
 
   void _handleIncomingData(String rawData) {
+    if (_state == ObdConnectionState.initializing) {
+      _initBuffer.write(rawData);
+      if (rawData.contains(">")) {
+        _initCompleter?.complete(_initBuffer.toString());
+      }
+      return;
+    }
+
     if (!_isRealMode && !_isDemoMode) return;
 
     final cleanData = rawData.replaceAll('>', '').trim();
@@ -82,6 +107,47 @@ class ObdProvider extends ChangeNotifier {
     }
   }
 
+  Future<String> _sendAndWait(String command) async {
+    _initBuffer.clear();
+    _initCompleter = Completer<String>();
+
+    _connection.send("$command\r");
+
+    return await _initCompleter!.future.timeout(const Duration(seconds: 3));
+  }
+
+  Future<bool> runHandshake() async {
+    try {
+      state = ObdConnectionState.initializing;
+      notifyListeners();
+
+      String atz = await _sendAndWait("ATZ");
+      if (!atz.toUpperCase().contains("ELM327")) {
+        developer.log("Ошибка: Адаптер не представился как ELM. Ответ: $atz");
+        return false;
+      }
+
+      String ate0 = await _sendAndWait("ATE0");
+      if (!ate0.toUpperCase().contains("OK")) {
+        developer.log("Ошибка: Не удалось выключить ЭХО. Ответ: $ate0");
+        return false;
+      }
+
+      String atl0 = await _sendAndWait("ATL0");
+      if (!atl0.toUpperCase().contains("OK")) return false;
+
+      String atsp0 = await _sendAndWait("ATSP0");
+      if (!atsp0.toUpperCase().contains("OK")) {
+        developer.log("Ошибка: Машина не приняла протокол. Ответ: $atsp0");
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// ===================== REAL MODE =====================
 
   Future<void> toggleRealMode() async {
@@ -89,6 +155,7 @@ class ObdProvider extends ChangeNotifier {
 
     if (_isRealMode) {
       await stopRealData();
+      state = ObdConnectionState.disconnected;
       return;
     }
 
@@ -101,7 +168,14 @@ class ObdProvider extends ChangeNotifier {
     _connection = realConnection;
     _listen();
 
-    startRealData();
+    bool isSuccesHandshake = await runHandshake();
+
+    if (isSuccesHandshake) {
+      startRealData();
+      state = ObdConnectionState.ready;
+    } else {
+      state = ObdConnectionState.error;
+    }
   }
 
   void startRealData() {
