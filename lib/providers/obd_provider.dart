@@ -5,11 +5,19 @@ import '../models/obd_data.dart';
 import '../services/obd_connection.dart';
 import '../services/demo_obd_connection.dart';
 
+enum ObdConnectionState { disconnected, initializing, ready, error }
+
 class ObdProvider extends ChangeNotifier {
   final ObdConnection realConnection;
   late ObdConnection _connection;
 
   StreamSubscription<String>? _rxSubscription;
+
+  Completer<String>? _initCompleter;
+  final StringBuffer _initBuffer = StringBuffer();
+
+  ObdConnectionState _state = ObdConnectionState.disconnected;
+  ObdConnectionState get state => _state;
 
   ObdData _data = const ObdData();
   ObdData get data => _data;
@@ -36,6 +44,14 @@ class ObdProvider extends ChangeNotifier {
   /// ===================== ПАРСИНГ =====================
 
   void _handleIncomingData(String rawData) {
+    if (_state == ObdConnectionState.initializing) {
+      _initBuffer.write(rawData);
+      if (rawData.contains(">")) {
+        _initCompleter?.complete(_initBuffer.toString());
+      }
+      return;
+    }
+
     if (!_isRealMode && !_isDemoMode) return;
 
     final cleanData = rawData.replaceAll('>', '').trim();
@@ -82,6 +98,31 @@ class ObdProvider extends ChangeNotifier {
     }
   }
 
+  Future<String> _sendAndWait(String command) async {
+    _initBuffer.clear();
+    _initCompleter = Completer<String>();
+
+    _connection.send("$command\r");
+
+    return await _initCompleter!.future.timeout(const Duration(seconds: 3));
+  }
+
+  Future<bool> runHandshake() async {
+    try {
+      _state = ObdConnectionState.initializing;
+      notifyListeners();
+
+      await _sendAndWait("ATZ");
+      await _sendAndWait("ATE0");
+      await _sendAndWait("ATL0");
+      await _sendAndWait("ATSP0");
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// ===================== REAL MODE =====================
 
   Future<void> toggleRealMode() async {
@@ -89,6 +130,8 @@ class ObdProvider extends ChangeNotifier {
 
     if (_isRealMode) {
       await stopRealData();
+      _state = ObdConnectionState.disconnected;
+      notifyListeners();
       return;
     }
 
@@ -101,7 +144,15 @@ class ObdProvider extends ChangeNotifier {
     _connection = realConnection;
     _listen();
 
-    startRealData();
+    bool isSuccesHandshake = await runHandshake();
+
+    if (isSuccesHandshake) {
+      startRealData();
+      _state = ObdConnectionState.ready;
+    } else {
+      _state = ObdConnectionState.error;
+      notifyListeners();
+    }
   }
 
   void startRealData() {
