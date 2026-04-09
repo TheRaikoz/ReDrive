@@ -122,22 +122,22 @@ class ObdProvider extends ChangeNotifier {
       notifyListeners();
 
       String atz = await _sendAndWait("ATZ");
-      if (!atz.contains("ELM327")) {
+      if (!atz.toUpperCase().contains("ELM327")) {
         developer.log("Ошибка: Адаптер не представился как ELM. Ответ: $atz");
         return false;
       }
 
       String ate0 = await _sendAndWait("ATE0");
-      if (!ate0.contains("OK")) {
+      if (!ate0.toUpperCase().contains("OK")) {
         developer.log("Ошибка: Не удалось выключить ЭХО. Ответ: $ate0");
         return false;
       }
 
       String atl0 = await _sendAndWait("ATL0");
-      if (!atl0.contains("OK")) return false;
+      if (!atl0.toUpperCase().contains("OK")) return false;
 
       String atsp0 = await _sendAndWait("ATSP0");
-      if (!atsp0.contains("OK")) {
+      if (!atsp0.toUpperCase().contains("OK")) {
         developer.log("Ошибка: Машина не приняла протокол. Ответ: $atsp0");
         return false;
       }
@@ -156,7 +156,6 @@ class ObdProvider extends ChangeNotifier {
     if (_isRealMode) {
       await stopRealData();
       state = ObdConnectionState.disconnected;
-      notifyListeners();
       return;
     }
 
@@ -176,7 +175,6 @@ class ObdProvider extends ChangeNotifier {
       state = ObdConnectionState.ready;
     } else {
       state = ObdConnectionState.error;
-      notifyListeners();
     }
   }
 
