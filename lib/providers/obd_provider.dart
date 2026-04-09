@@ -30,6 +30,15 @@ class ObdProvider extends ChangeNotifier {
 
   Timer? _pollTimer;
 
+  set state(ObdConnectionState value) {
+    if (_state == value) return;
+
+    developer.log('🔄 СМЕНА СОСТОЯНИЯ: $_state -> $value', name: 'ObdProvider');
+
+    _state = value;
+    notifyListeners();
+  }
+
   ObdProvider(this.realConnection) {
     _connection = realConnection;
     _listen();
@@ -109,7 +118,7 @@ class ObdProvider extends ChangeNotifier {
 
   Future<bool> runHandshake() async {
     try {
-      _state = ObdConnectionState.initializing;
+      state = ObdConnectionState.initializing;
       notifyListeners();
 
       String atz = await _sendAndWait("ATZ");
@@ -146,7 +155,7 @@ class ObdProvider extends ChangeNotifier {
 
     if (_isRealMode) {
       await stopRealData();
-      _state = ObdConnectionState.disconnected;
+      state = ObdConnectionState.disconnected;
       notifyListeners();
       return;
     }
@@ -164,9 +173,9 @@ class ObdProvider extends ChangeNotifier {
 
     if (isSuccesHandshake) {
       startRealData();
-      _state = ObdConnectionState.ready;
+      state = ObdConnectionState.ready;
     } else {
-      _state = ObdConnectionState.error;
+      state = ObdConnectionState.error;
       notifyListeners();
     }
   }
