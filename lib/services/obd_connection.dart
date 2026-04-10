@@ -7,4 +7,5 @@ abstract class ObdConnection {
   Future<void> disconnect();
 
   bool get isConnected;
+  bool get isReconnecting;
 }
