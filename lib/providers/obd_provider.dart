@@ -55,10 +55,12 @@ class ObdProvider extends ChangeNotifier {
     /// буфер для команд отправляемых
     /// без demo режима пишутся в буфер и по
     /// завершению отправляют состояние "выполнено"
-    _commandBuffer.write(rawData);
-    if (rawData.contains(">")) {
-      if (_commandCompleter?.isCompleted == false) {
-        _commandCompleter?.complete(_commandBuffer.toString());
+    if (!_isDemoMode) {
+      _commandBuffer.write(rawData);
+      if (rawData.contains(">")) {
+        if (_commandCompleter?.isCompleted == false) {
+          _commandCompleter?.complete(_commandBuffer.toString());
+        }
       }
     }
 
@@ -151,7 +153,7 @@ class ObdProvider extends ChangeNotifier {
     if (!currentConnection.isConnected) return;
 
     if (_isRealMode) {
-      stopRealData();
+      _stopRealData();
       state = ObdConnectionState.disconnected;
       return;
     }
@@ -176,39 +178,62 @@ class ObdProvider extends ChangeNotifier {
     }
   }
 
-  ///
+  /// пакетно (дожидаясь каждого датчика) отправляем
+  /// данные на obd2 через наше подключение
+  /// и как дождёмся всех обновляем UI
   Future<void> _startPollingLoop() async {
     while (_isRealMode && _connection.isConnected) {
+      if (_connection.isReconnecting) {
+        developer.log('блютуз чинит соединение', name: 'ObdProvider');
+        await Future.delayed(const Duration(milliseconds: 500));
+        continue;
+      }
+
       ObdData batchData = _data;
 
       String speedRes = await _sendAndWait("010D");
+      if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(speedRes, batchData);
 
       String rpmRes = await _sendAndWait("010C");
+      if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(rpmRes, batchData);
 
       String tempRes = await _sendAndWait("0105");
+      if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(tempRes, batchData);
 
       String voltRes = await _sendAndWait("ATRV");
+      if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(voltRes, batchData);
 
-      if (!isRealMode) return;
+      if (_isRealMode && _connection.isConnected) {
+        _data = batchData;
+        notifyListeners();
+      }
 
-      _data = batchData;
-      notifyListeners();
+      if (_isRealMode) {
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
 
-      await Future.delayed(const Duration(milliseconds: 500));
+    if (_isRealMode) {
+      developer.log('внезапный обрыв связи эбу', name: 'ObdProvider');
+      _stopRealData();
     }
   }
 
-  void stopRealData() {
+  void _stopRealData() {
     _isRealMode = false;
+    if (_commandCompleter?.isCompleted == false) {
+      _commandCompleter?.complete("");
+    }
     _data = const ObdData();
+    state = ObdConnectionState.disconnected;
     notifyListeners();
   }
 
-  /// ===================== DEMO MODE =====================
+  /// ===== DEMO MODE =========
 
   Future<void> toggleDemoMode() async {
     if (_isRealMode) {
@@ -232,6 +257,9 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// рукопожатие или же просто инициализация, обязетальна
+  /// для всех obd2 разьёмов чтобы настроить всё на корректную работу
+  /// с движком машины.
   Future<bool> runHandshake() async {
     try {
       state = ObdConnectionState.initializing;
@@ -254,8 +282,6 @@ class ObdProvider extends ChangeNotifier {
       return false;
     }
   }
-
-  /// ===================== CLEANUP =====================
 
   @override
   void dispose() {
