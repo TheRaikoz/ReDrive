@@ -18,6 +18,22 @@ class DemoObdConnection implements ObdConnection {
   Future<void> connect() async {
     _timer?.cancel();
 
+    /// первый раз отправляем
+    /// чтобы не было так, что demo режим
+    /// уже нажат, а отправляется с задержкой.
+    final rpm = 700 + _random.nextInt(3300);
+    final speed = _random.nextInt(280);
+    final temp = 70 + _random.nextInt(40);
+
+    final rpmRaw = rpm * 4;
+    final a = (rpmRaw ~/ 256).toRadixString(16).padLeft(2, '0');
+    final b = (rpmRaw % 256).toRadixString(16).padLeft(2, '0');
+
+    _controller.add("41 0C $a $b");
+    _controller.add("41 0D ${speed.toRadixString(16)}");
+    _controller.add("41 05 ${(temp + 40).toRadixString(16)}");
+    _controller.add("${(13.5 + _random.nextDouble()).toStringAsFixed(2)}V");
+
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       final rpm = 700 + _random.nextInt(3300);
       final speed = _random.nextInt(280);
