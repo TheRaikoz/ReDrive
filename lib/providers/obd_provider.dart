@@ -204,7 +204,7 @@ class ObdProvider extends ChangeNotifier {
       notifyListeners();
 
       if (_isRealMode) {
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 10000));
       }
     }
   }
@@ -235,9 +235,11 @@ class ObdProvider extends ChangeNotifier {
     }
 
     _connection = DemoObdConnection();
-    await _connection.connect();
     _isDemoMode = true;
     _listen();
+
+    await _connection.connect();
+
     notifyListeners();
   }
 
