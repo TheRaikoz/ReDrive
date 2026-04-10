@@ -13,6 +13,9 @@ class BluetoothObdConnection implements ObdConnection {
   bool get isConnected => provider.isConnected;
 
   @override
+  bool get isReconnecting => provider.isReconnectingBackground;
+
+  @override
   Future<void> send(String command) async {
     provider.sendCommand(command);
   }
