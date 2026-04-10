@@ -8,7 +8,7 @@ import '../services/demo_obd_connection.dart';
 enum ObdConnectionState { disconnected, initializing, ready, error }
 
 class ObdProvider extends ChangeNotifier {
-  final ObdConnection realConnection;
+  final ObdConnection currentConnection;
   late ObdConnection _connection;
 
   StreamSubscription<String>? _rxSubscription;
@@ -28,9 +28,8 @@ class ObdProvider extends ChangeNotifier {
   bool _isRealMode = false;
   bool get isRealMode => _isRealMode;
 
-  // Timer? _pollTimer;
-
-  /// For debug /// state change
+  /// For debug    ///
+  /// Для откладки ///
   set state(ObdConnectionState value) {
     if (_state == value) return;
 
@@ -40,8 +39,8 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ObdProvider(this.realConnection) {
-    _connection = realConnection;
+  ObdProvider(this.currentConnection) {
+    _connection = currentConnection;
     _listen();
   }
 
@@ -156,7 +155,7 @@ class ObdProvider extends ChangeNotifier {
   /// ===================== REAL MODE =====================
 
   Future<void> toggleRealMode() async {
-    if (!realConnection.isConnected) return;
+    if (!currentConnection.isConnected) return;
 
     if (_isRealMode) {
       await stopRealData();
@@ -170,7 +169,7 @@ class ObdProvider extends ChangeNotifier {
       _data = const ObdData();
     }
 
-    _connection = realConnection;
+    _connection = currentConnection;
     _listen();
 
     bool isSuccessHandshake = await runHandshake();
