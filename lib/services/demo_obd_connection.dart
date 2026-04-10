@@ -9,6 +9,9 @@ class DemoObdConnection implements ObdConnection {
   Timer? _timer;
 
   @override
+  bool get isReconnecting => false;
+
+  @override
   Stream<String> get incoming => _controller.stream;
 
   @override
