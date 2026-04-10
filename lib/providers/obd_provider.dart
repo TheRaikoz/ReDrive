@@ -49,7 +49,7 @@ class ObdProvider extends ChangeNotifier {
     _rxSubscription = _connection.incoming.listen(_handleIncomingData);
   }
 
-  /// ===================== ПАРСИНГ =====================
+  /// ======= Парсинг ======== ///
 
   void _handleIncomingData(String rawData) {
     /// буфер для команд отправляемых
@@ -76,6 +76,8 @@ class ObdProvider extends ChangeNotifier {
     }
   }
 
+  /// получаем команду -> ставим новый обработчик "успешности"
+  /// отправляем в текущее соединение команду и ждём ответ
   Future<String> _sendAndWait(String command) async {
     _commandBuffer.clear();
     _commandCompleter = Completer<String>();
@@ -87,11 +89,15 @@ class ObdProvider extends ChangeNotifier {
         const Duration(seconds: 3),
       );
     } catch (e) {
-      developer.log("Таймаут команды $command: $e", name: 'ObdLogic');
+      developer.log("таймаут команды $command: $e", name: 'ObdLogic');
       return "";
     }
   }
 
+  /// парсим значения от нашего текущего подключения, и возвращаем объект
+  /// пакета данных если всё прошло корректно
+  /// сейчас уже умеет парсить: скорость, обороты движка
+  /// температуру движка и напряжение сети ( акб'шку )
   ObdData _parseResponse(String rawData, ObdData currentBatchData) {
     final cleanData = rawData.replaceAll('>', '').trim();
 
@@ -106,16 +112,23 @@ class ObdProvider extends ChangeNotifier {
     final parts = cleanData.split(RegExp(r'\s+'));
 
     try {
+      /// скорость
       if (parts.length >= 3 && parts[0] == "41" && parts[1] == "0D") {
         return currentBatchData.copyWith(speed: int.parse(parts[2], radix: 16));
+
+        /// обороты
       } else if (parts.length >= 4 && parts[0] == "41" && parts[1] == "0C") {
         final a = int.parse(parts[2], radix: 16);
         final b = int.parse(parts[3], radix: 16);
         return currentBatchData.copyWith(rpm: ((a * 256) + b) ~/ 4);
+
+        /// температура
       } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "05") {
         return currentBatchData.copyWith(
           engineTemp: int.parse(parts[2], radix: 16) - 40,
         );
+
+        /// напряжение сети
       } else if (cleanData.contains('V')) {
         final voltValue = double.tryParse(cleanData.replaceAll('V', ''));
         if (voltValue != null) {
@@ -123,42 +136,22 @@ class ObdProvider extends ChangeNotifier {
         }
       }
     } catch (e) {
-      developer.log("Ошибка парсинга: $e", name: 'ObdLogic');
+      developer.log("ошибка парсинга: $e", name: 'ObdLogic');
     }
 
     return currentBatchData;
   }
 
-  Future<bool> runHandshake() async {
-    try {
-      state = ObdConnectionState.initializing;
-      notifyListeners();
+  /// ======= REAL MODE ========= ///
 
-      String atz = await _sendAndWait("ATZ");
-      if (!atz.toUpperCase().contains("ELM327")) return false;
-
-      String ate0 = await _sendAndWait("ATE0");
-      if (!ate0.toUpperCase().contains("OK")) return false;
-
-      String atl0 = await _sendAndWait("ATL0");
-      if (!atl0.toUpperCase().contains("OK")) return false;
-
-      String atsp0 = await _sendAndWait("ATSP0");
-      if (!atsp0.toUpperCase().contains("OK")) return false;
-
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  /// ===================== REAL MODE =====================
-
+  /// если у нас есть реальное подключенное устройство, то
+  /// мы отправляем запросы "инициализации" и после этого крутим
+  /// цикл обработки запросов от нашего elm327 по obd2 разьёму
   Future<void> toggleRealMode() async {
     if (!currentConnection.isConnected) return;
 
     if (_isRealMode) {
-      await stopRealData();
+      stopRealData();
       state = ObdConnectionState.disconnected;
       return;
     }
@@ -183,6 +176,7 @@ class ObdProvider extends ChangeNotifier {
     }
   }
 
+  ///
   Future<void> _startPollingLoop() async {
     while (_isRealMode && _connection.isConnected) {
       ObdData batchData = _data;
@@ -199,21 +193,17 @@ class ObdProvider extends ChangeNotifier {
       String voltRes = await _sendAndWait("ATRV");
       batchData = _parseResponse(voltRes, batchData);
 
+      if (!isRealMode) return;
+
       _data = batchData;
       notifyListeners();
 
-      if (_isRealMode) {
-        await Future.delayed(const Duration(milliseconds: 10000));
-      }
+      await Future.delayed(const Duration(milliseconds: 500));
     }
   }
 
-  Future<void> stopRealData() async {
+  void stopRealData() {
     _isRealMode = false;
-    notifyListeners();
-
-    await Future.delayed(const Duration(milliseconds: 300));
-
     _data = const ObdData();
     notifyListeners();
   }
@@ -240,6 +230,29 @@ class ObdProvider extends ChangeNotifier {
     await _connection.connect();
 
     notifyListeners();
+  }
+
+  Future<bool> runHandshake() async {
+    try {
+      state = ObdConnectionState.initializing;
+      notifyListeners();
+
+      String atz = await _sendAndWait("ATZ");
+      if (!atz.toUpperCase().contains("ELM327")) return false;
+
+      String ate0 = await _sendAndWait("ATE0");
+      if (!ate0.toUpperCase().contains("OK")) return false;
+
+      String atl0 = await _sendAndWait("ATL0");
+      if (!atl0.toUpperCase().contains("OK")) return false;
+
+      String atsp0 = await _sendAndWait("ATSP0");
+      if (!atsp0.toUpperCase().contains("OK")) return false;
+
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   /// ===================== CLEANUP =====================
