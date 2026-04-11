@@ -11,6 +11,10 @@ class ObdProvider extends ChangeNotifier {
   final ObdConnection currentConnection;
   late ObdConnection _connection;
 
+  /// Возвращает статус физического подключения
+  /// Ble, wifi, usb, demo режим и другие
+  bool get isDeviceConnected => currentConnection.isConnected;
+
   StreamSubscription<String>? _rxSubscription;
 
   Completer<String>? _commandCompleter;
@@ -27,6 +31,9 @@ class ObdProvider extends ChangeNotifier {
 
   bool _isRealMode = false;
   bool get isRealMode => _isRealMode;
+
+  String _initMessage = "Инициализация";
+  String get initMessage => _initMessage;
 
   /// For debug    ///
   /// Для откладки ///
@@ -169,6 +176,14 @@ class ObdProvider extends ChangeNotifier {
 
     bool isSuccessHandshake = await runHandshake();
 
+    if (state == ObdConnectionState.disconnected) {
+      developer.log(
+        'Инициализация была прервана пользователем',
+        name: 'ObdProvider',
+      );
+      return;
+    }
+
     if (isSuccessHandshake) {
       _isRealMode = true;
       state = ObdConnectionState.ready;
@@ -229,7 +244,7 @@ class ObdProvider extends ChangeNotifier {
   }
 
   void stopRealData() {
-    if (!_isRealMode) return;
+    if (state == ObdConnectionState.disconnected) return;
 
     _isRealMode = false;
 
@@ -272,22 +287,31 @@ class ObdProvider extends ChangeNotifier {
   Future<bool> runHandshake() async {
     try {
       state = ObdConnectionState.initializing;
+      _initMessage = "Подключение к ЭБУ";
       notifyListeners();
 
       String atz = await _sendAndWait("ATZ");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atz.toUpperCase().contains("ELM327")) return false;
 
       String ate0 = await _sendAndWait("ATE0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!ate0.toUpperCase().contains("OK")) return false;
 
       String atl0 = await _sendAndWait("ATL0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atl0.toUpperCase().contains("OK")) return false;
 
       String atsp0 = await _sendAndWait("ATSP0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atsp0.toUpperCase().contains("OK")) return false;
+
+      await Future.delayed(Duration(milliseconds: 300));
 
       return true;
     } catch (e) {
+      _initMessage = "Ошибка инициализации";
+      notifyListeners();
       return false;
     }
   }
