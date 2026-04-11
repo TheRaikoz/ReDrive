@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
-import 'package:redrive/providers/bluetooth_provider.dart';
 import '../providers/obd_provider.dart';
 import 'dart:developer' as developer;
 
@@ -258,10 +257,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildConnectionContainer() {
     final colorScheme = Theme.of(context).colorScheme;
+
     final obdProvider = context.watch<ObdProvider>();
 
     final bool isActive = obdProvider.isRealMode;
-    final bool isConnected = obdProvider.isDeviceConnected;
+    bool isConnected = obdProvider.isDeviceConnected;
 
     return Container(
       width: double.infinity,
