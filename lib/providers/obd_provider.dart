@@ -153,7 +153,7 @@ class ObdProvider extends ChangeNotifier {
     if (!currentConnection.isConnected) return;
 
     if (_isRealMode) {
-      _stopRealData();
+      stopRealData();
       state = ObdConnectionState.disconnected;
       return;
     }
@@ -182,11 +182,16 @@ class ObdProvider extends ChangeNotifier {
   /// данные на obd2 через наше подключение
   /// и как дождёмся всех обновляем UI
   Future<void> _startPollingLoop() async {
-    while (_isRealMode && _connection.isConnected) {
-      if (_connection.isReconnecting) {
-        developer.log('блютуз чинит соединение', name: 'ObdProvider');
-        await Future.delayed(const Duration(milliseconds: 500));
+    while (_isRealMode) {
+      if (currentConnection.isReconnecting) {
+        developer.log('Пауза опроса: Блютуз в реконнекте', name: 'ObdProvider');
+        await Future.delayed(const Duration(seconds: 1));
         continue;
+      }
+
+      if (!currentConnection.isConnected) {
+        developer.log('Связь потеряна окончательно', name: 'ObdProvider');
+        break;
       }
 
       ObdData batchData = _data;
@@ -219,15 +224,19 @@ class ObdProvider extends ChangeNotifier {
 
     if (_isRealMode) {
       developer.log('внезапный обрыв связи эбу', name: 'ObdProvider');
-      _stopRealData();
+      stopRealData();
     }
   }
 
-  void _stopRealData() {
+  void stopRealData() {
+    if (!_isRealMode) return;
+
     _isRealMode = false;
+
     if (_commandCompleter?.isCompleted == false) {
       _commandCompleter?.complete("");
     }
+
     _data = const ObdData();
     state = ObdConnectionState.disconnected;
     notifyListeners();
