@@ -157,7 +157,9 @@ class ObdProvider extends ChangeNotifier {
   /// мы отправляем запросы "инициализации" и после этого крутим
   /// цикл обработки запросов от нашего elm327 по obd2 разьёму
   Future<void> toggleRealMode() async {
-    if (!currentConnection.isConnected) return;
+    if (!currentConnection.isConnected || currentConnection.isReconnecting) {
+      return;
+    }
 
     if (_isRealMode) {
       stopRealData();
