@@ -21,6 +21,8 @@ void main() {
           update: (context, blueProvider, currentObdProvider) {
             final obdProvider = currentObdProvider!;
 
+            obdProvider.updateConnection(BluetoothObdConnection(blueProvider));
+
             final isBlueDead =
                 !blueProvider.isConnected &&
                 !blueProvider.isReconnectingBackground;

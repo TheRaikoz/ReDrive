@@ -277,6 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           color: Colors.transparent,
           child: InkWell(
             onTap: () async {
+              developer.log("состояние $isConnected");
               if (isConnected) {
                 if (isActive) {
                   obdProvider.toggleRealMode();
@@ -388,7 +389,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (!isCanceled && context.mounted) {
                   Navigator.pop(context);
 
-                  if (!obdProvider.isRealMode) {
+                  if (!obdProvider.isRealMode &&
+                      !obdProvider.currentConnection.isReconnecting) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text(

@@ -13,7 +13,7 @@ class ObdProvider extends ChangeNotifier {
 
   /// Возвращает статус физического подключения
   /// Ble, wifi, usb, demo режим и другие
-  bool get isDeviceConnected => currentConnection.isConnected;
+  bool get isDeviceConnected => _connection.isConnected;
 
   StreamSubscription<String>? _rxSubscription;
 
@@ -43,6 +43,15 @@ class ObdProvider extends ChangeNotifier {
     developer.log('🔄 СМЕНА СОСТОЯНИЯ: $_state -> $value', name: 'ObdProvider');
 
     _state = value;
+    notifyListeners();
+  }
+
+  void updateConnection(ObdConnection newConnection) {
+    if (_connection == newConnection) return;
+
+    _connection = newConnection;
+    _listen();
+
     notifyListeners();
   }
 
@@ -157,7 +166,8 @@ class ObdProvider extends ChangeNotifier {
   /// мы отправляем запросы "инициализации" и после этого крутим
   /// цикл обработки запросов от нашего elm327 по obd2 разьёму
   Future<void> toggleRealMode() async {
-    if (!currentConnection.isConnected || currentConnection.isReconnecting) {
+    if (!currentConnection.isConnected ||
+        (currentConnection.isReconnecting && !isRealMode)) {
       return;
     }
 
@@ -310,7 +320,7 @@ class ObdProvider extends ChangeNotifier {
 
       await Future.delayed(Duration(milliseconds: 300));
 
-      return true;
+      return false;
     } catch (e) {
       _initMessage = "Ошибка инициализации";
       notifyListeners();
