@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
-import 'package:redrive/providers/bluetooth_provider.dart';
 import '../providers/obd_provider.dart';
 import 'dart:developer' as developer;
 
@@ -258,11 +257,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildConnectionContainer() {
     final colorScheme = Theme.of(context).colorScheme;
-    final blueProvider = context.watch<BluetoothProvider>();
+
     final obdProvider = context.watch<ObdProvider>();
 
     final bool isActive = obdProvider.isRealMode;
-    final bool isConnected = blueProvider.isConnected;
+    bool isConnected = obdProvider.isDeviceConnected;
 
     return Container(
       width: double.infinity,
@@ -277,21 +276,134 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () {
+            onTap: () async {
               if (isConnected) {
-                obdProvider.toggleRealMode();
-              } else {
-                /// короче вот тут надо сделать либо пересылку на экран с подключением
-                /// либо сделать свой авто-коннект помня последние попытки подключения
-                /// человека ( будь то блютуз, вайфай, провод )
-                /// и желательно делать при старте приложения?
-                /// или давать выбор между последними сеансами?
-                developer.log(
-                  "Bluetooth не подключен RealModeSection",
-                  name: 'UI',
+                if (isActive) {
+                  obdProvider.toggleRealMode();
+                  return;
+                }
+
+                bool isCanceled = false;
+
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (dialogContext) {
+                    return PopScope(
+                      canPop: false,
+                      child: AlertDialog(
+                        insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 60,
+                        ),
+                        backgroundColor: Theme.of(
+                          dialogContext,
+                        ).colorScheme.surfaceContainerHigh,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                        content: SizedBox(
+                          height: 220,
+                          child: Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const SizedBox(
+                                  width: 55,
+                                  height: 55,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 4.5,
+                                  ),
+                                ),
+
+                                Consumer<ObdProvider>(
+                                  builder: (context, obd, child) {
+                                    return Text(
+                                      obd.initMessage,
+                                      textAlign: TextAlign.center,
+                                      textScaler: TextScaler.noScaling,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    );
+                                  },
+                                ),
+
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 26,
+                                    right: 26,
+                                    bottom: 8,
+                                  ),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    height: 40,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        isCanceled = true;
+                                        obdProvider.stopRealData();
+                                        Navigator.pop(dialogContext);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Theme.of(
+                                          dialogContext,
+                                        ).colorScheme.primary,
+                                        foregroundColor: Theme.of(
+                                          dialogContext,
+                                        ).colorScheme.onSurface,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            100,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        "Отмена",
+                                        textScaler: TextScaler.noScaling,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Theme.of(
+                                            dialogContext,
+                                          ).colorScheme.onSurface,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 );
+
+                await obdProvider.toggleRealMode();
+
+                if (!isCanceled && context.mounted) {
+                  Navigator.pop(context);
+
+                  if (!obdProvider.isRealMode) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text(
+                          "Ошибка: Не удалось связаться с ЭБУ",
+                        ),
+                        backgroundColor: colorScheme.error,
+                      ),
+                    );
+                  }
+                }
+              } else {
+                developer.log("Bluetooth не подключен", name: 'UI');
               }
             },
+
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Row(

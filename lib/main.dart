@@ -14,10 +14,25 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => BluetoothProvider()),
 
-        ChangeNotifierProvider(
+        ChangeNotifierProxyProvider<BluetoothProvider, ObdProvider>(
           create: (context) => ObdProvider(
             BluetoothObdConnection(context.read<BluetoothProvider>()),
           ),
+          update: (context, blueProvider, currentObdProvider) {
+            final obdProvider = currentObdProvider!;
+
+            final isBlueDead =
+                !blueProvider.isConnected &&
+                !blueProvider.isReconnectingBackground;
+
+            if (isBlueDead && obdProvider.isRealMode) {
+              Future.microtask(() {
+                obdProvider.stopRealData();
+              });
+            }
+
+            return obdProvider;
+          },
         ),
       ],
       child: const RedriveApp(),

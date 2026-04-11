@@ -149,11 +149,6 @@ class BluetoothProvider extends ChangeNotifier {
       _discoveredDevices.add(_connectedDevice!);
     }
 
-    ////
-    _discoveredDevices.add(
-      ObdDevice(name: "кутик в прайме", address: "asdlasdllsalda"),
-    );
-    ////
     notifyListeners();
 
     try {
@@ -455,6 +450,7 @@ class BluetoothProvider extends ChangeNotifier {
   /// Полное выключение БЛЮТУЗА в приложении
   Future<void> turnOffBluetooth() async {
     _isToggleOn = false;
+    cancelConnection();
     await disconnect();
     await _stopScan();
     _discoveredDevices.clear();

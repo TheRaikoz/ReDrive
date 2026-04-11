@@ -11,6 +11,10 @@ class ObdProvider extends ChangeNotifier {
   final ObdConnection currentConnection;
   late ObdConnection _connection;
 
+  /// Возвращает статус физического подключения
+  /// Ble, wifi, usb, demo режим и другие
+  bool get isDeviceConnected => currentConnection.isConnected;
+
   StreamSubscription<String>? _rxSubscription;
 
   Completer<String>? _commandCompleter;
@@ -27,6 +31,9 @@ class ObdProvider extends ChangeNotifier {
 
   bool _isRealMode = false;
   bool get isRealMode => _isRealMode;
+
+  String _initMessage = "Инициализация";
+  String get initMessage => _initMessage;
 
   /// For debug    ///
   /// Для откладки ///
@@ -153,7 +160,7 @@ class ObdProvider extends ChangeNotifier {
     if (!currentConnection.isConnected) return;
 
     if (_isRealMode) {
-      _stopRealData();
+      stopRealData();
       state = ObdConnectionState.disconnected;
       return;
     }
@@ -169,6 +176,14 @@ class ObdProvider extends ChangeNotifier {
 
     bool isSuccessHandshake = await runHandshake();
 
+    if (state == ObdConnectionState.disconnected) {
+      developer.log(
+        'Инициализация была прервана пользователем',
+        name: 'ObdProvider',
+      );
+      return;
+    }
+
     if (isSuccessHandshake) {
       _isRealMode = true;
       state = ObdConnectionState.ready;
@@ -182,11 +197,16 @@ class ObdProvider extends ChangeNotifier {
   /// данные на obd2 через наше подключение
   /// и как дождёмся всех обновляем UI
   Future<void> _startPollingLoop() async {
-    while (_isRealMode && _connection.isConnected) {
-      if (_connection.isReconnecting) {
-        developer.log('блютуз чинит соединение', name: 'ObdProvider');
-        await Future.delayed(const Duration(milliseconds: 500));
+    while (_isRealMode) {
+      if (currentConnection.isReconnecting) {
+        developer.log('Пауза опроса: Блютуз в реконнекте', name: 'ObdProvider');
+        await Future.delayed(const Duration(seconds: 1));
         continue;
+      }
+
+      if (!currentConnection.isConnected) {
+        developer.log('Связь потеряна окончательно', name: 'ObdProvider');
+        break;
       }
 
       ObdData batchData = _data;
@@ -219,15 +239,19 @@ class ObdProvider extends ChangeNotifier {
 
     if (_isRealMode) {
       developer.log('внезапный обрыв связи эбу', name: 'ObdProvider');
-      _stopRealData();
+      stopRealData();
     }
   }
 
-  void _stopRealData() {
+  void stopRealData() {
+    if (state == ObdConnectionState.disconnected) return;
+
     _isRealMode = false;
+
     if (_commandCompleter?.isCompleted == false) {
       _commandCompleter?.complete("");
     }
+
     _data = const ObdData();
     state = ObdConnectionState.disconnected;
     notifyListeners();
@@ -263,22 +287,31 @@ class ObdProvider extends ChangeNotifier {
   Future<bool> runHandshake() async {
     try {
       state = ObdConnectionState.initializing;
+      _initMessage = "Подключение к ЭБУ";
       notifyListeners();
 
       String atz = await _sendAndWait("ATZ");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atz.toUpperCase().contains("ELM327")) return false;
 
       String ate0 = await _sendAndWait("ATE0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!ate0.toUpperCase().contains("OK")) return false;
 
       String atl0 = await _sendAndWait("ATL0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atl0.toUpperCase().contains("OK")) return false;
 
       String atsp0 = await _sendAndWait("ATSP0");
+      if (state == ObdConnectionState.disconnected) return false;
       if (!atsp0.toUpperCase().contains("OK")) return false;
+
+      await Future.delayed(Duration(milliseconds: 300));
 
       return true;
     } catch (e) {
+      _initMessage = "Ошибка инициализации";
+      notifyListeners();
       return false;
     }
   }
