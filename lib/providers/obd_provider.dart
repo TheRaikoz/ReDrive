@@ -364,7 +364,7 @@ class ObdProvider extends ChangeNotifier {
 
       await Future.delayed(Duration(milliseconds: 3000));
 
-      return false;
+      return true;
     } catch (e) {
       _initMessage = "Ошибка инициализации";
       notifyListeners();
