@@ -389,8 +389,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (!isCanceled && context.mounted) {
                   Navigator.pop(context);
 
-                  if (!obdProvider.isRealMode &&
-                      !obdProvider.currentConnection.isReconnecting) {
+                  if ((!obdProvider.isRealMode &&
+                          !obdProvider.currentConnection.isReconnecting) &&
+                      (!obdProvider.isDemoMode)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text(
