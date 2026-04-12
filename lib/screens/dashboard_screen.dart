@@ -279,7 +279,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () async {
               developer.log("состояние $isConnected");
               if (isConnected) {
-                if (isActive) {
+                if (isActive ||
+                    obdProvider.state == ObdConnectionState.initializing) {
                   obdProvider.toggleRealMode();
                   return;
                 }
@@ -389,8 +390,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (!isCanceled && context.mounted) {
                   Navigator.pop(context);
 
-                  if (!obdProvider.isRealMode &&
-                      !obdProvider.currentConnection.isReconnecting) {
+                  if ((!obdProvider.isRealMode &&
+                          !obdProvider.currentConnection.isReconnecting) &&
+                      (!obdProvider.isDemoMode)) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: const Text(
@@ -402,7 +404,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   }
                 }
               } else {
-                developer.log("Bluetooth не подключен", name: 'UI');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Сначала подключитесь к Ble/Wifi/USB"),
+                    backgroundColor: colorScheme.error,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
               }
             },
 

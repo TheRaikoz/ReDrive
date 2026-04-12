@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import '../models/obd_data.dart';
 import '../services/obd_connection.dart';
-import '../services/demo_obd_connection.dart';
+import '../services/demo_data_generator.dart';
 
 enum ObdConnectionState { disconnected, initializing, ready, error }
 
@@ -14,6 +14,8 @@ class ObdProvider extends ChangeNotifier {
   /// Возвращает статус физического подключения
   /// Ble, wifi, usb, demo режим и другие
   bool get isDeviceConnected => _connection.isConnected;
+
+  final DemoDataGenerator _demoGenerator = DemoDataGenerator();
 
   StreamSubscription<String>? _rxSubscription;
 
@@ -35,6 +37,9 @@ class ObdProvider extends ChangeNotifier {
   String _initMessage = "Инициализация";
   String get initMessage => _initMessage;
 
+  bool _prevIsConnected = false;
+  bool _prevIsReconnecting = false;
+
   /// For debug    ///
   /// Для откладки ///
   set state(ObdConnectionState value) {
@@ -47,12 +52,63 @@ class ObdProvider extends ChangeNotifier {
   }
 
   void updateConnection(ObdConnection newConnection) {
-    if (_connection == newConnection) return;
-
     _connection = newConnection;
     _listen();
 
+    final currentIsConnected = _connection.isConnected;
+    final currentIsReconnecting = _connection.isReconnecting;
+
+    /// Определяем, был ли обрыв связи на предыдущем шагеия
+    /// (либо не было коннекта, либо шел процесс фонового переподключения)
+    bool wasDisconnectedOrReconnecting =
+        !_prevIsConnected || _prevIsReconnecting;
+
+    /// Если включён реально,
+    /// если в переподключался
+    /// сейчас подключён и уже не переподключается
+    /// то нам нужно заново востановить handshake ( рукопожатие)
+    if (_isRealMode &&
+        wasDisconnectedOrReconnecting &&
+        currentIsConnected &&
+        !currentIsReconnecting) {
+      _recoverEcuConnection();
+    }
+
+    /// Если был включён человекм
+    /// и сейчас уже не подключёен и
+    /// не переподключается то стопаем
+    /// значит подключение отвалилось не нашими силами
+    if (_isRealMode && !currentIsConnected && !currentIsReconnecting) {
+      stopRealData();
+    }
+
+    _prevIsConnected = currentIsConnected;
+    _prevIsReconnecting = currentIsReconnecting;
+
     notifyListeners();
+  }
+
+  Future<void> _recoverEcuConnection() async {
+    state = ObdConnectionState.initializing;
+
+    developer.log(
+      '🔄 Блютуз восстановлен. Ждем инициализации железа...',
+      name: 'ObdProvider',
+    );
+
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (!_isRealMode) return;
+
+    bool isSuccess = await runHandshake();
+
+    if (!_isRealMode) return;
+
+    if (isSuccess) {
+      state = ObdConnectionState.ready;
+    } else {
+      stopRealData();
+    }
   }
 
   ObdProvider(this.currentConnection) {
@@ -68,28 +124,15 @@ class ObdProvider extends ChangeNotifier {
   /// ======= Парсинг ======== ///
 
   void _handleIncomingData(String rawData) {
-    /// буфер для команд отправляемых
-    /// без demo режима пишутся в буфер и по
-    /// завершению отправляют состояние "выполнено"
-    if (!_isDemoMode) {
-      _commandBuffer.write(rawData);
-      if (rawData.contains(">")) {
-        if (_commandCompleter?.isCompleted == false) {
-          _commandCompleter?.complete(_commandBuffer.toString());
-        }
-      }
-    }
+    if (_isDemoMode) return;
 
     /// если режим демонстрации то мы
     /// просто отправялем пустой объект
     /// obdData и целиком обновляем его
-    if (_isDemoMode) {
-      final cleanData = rawData.replaceAll('>', '').trim();
-      if (cleanData.isNotEmpty &&
-          cleanData != "OK" &&
-          !cleanData.contains("ELM327")) {
-        _data = _parseResponse(cleanData, _data);
-        notifyListeners();
+    _commandBuffer.write(rawData);
+    if (rawData.contains(">")) {
+      if (_commandCompleter?.isCompleted == false) {
+        _commandCompleter?.complete(_commandBuffer.toString());
       }
     }
   }
@@ -166,8 +209,8 @@ class ObdProvider extends ChangeNotifier {
   /// мы отправляем запросы "инициализации" и после этого крутим
   /// цикл обработки запросов от нашего elm327 по obd2 разьёму
   Future<void> toggleRealMode() async {
-    if (!currentConnection.isConnected ||
-        (currentConnection.isReconnecting && !isRealMode)) {
+    if (!_connection.isConnected ||
+        (_connection.isReconnecting && !isRealMode)) {
       return;
     }
 
@@ -178,13 +221,14 @@ class ObdProvider extends ChangeNotifier {
     }
 
     if (_isDemoMode) {
-      await _connection.disconnect();
       _isDemoMode = false;
+      _demoGenerator.stop();
       _data = const ObdData();
+      notifyListeners();
     }
 
-    _connection = currentConnection;
-    _listen();
+    // _connection = currentConnection;
+    // _listen();
 
     bool isSuccessHandshake = await runHandshake();
 
@@ -210,13 +254,14 @@ class ObdProvider extends ChangeNotifier {
   /// и как дождёмся всех обновляем UI
   Future<void> _startPollingLoop() async {
     while (_isRealMode) {
-      if (currentConnection.isReconnecting) {
+      if (_connection.isReconnecting ||
+          state == ObdConnectionState.initializing) {
         developer.log('Пауза опроса: Блютуз в реконнекте', name: 'ObdProvider');
         await Future.delayed(const Duration(seconds: 1));
         continue;
       }
 
-      if (!currentConnection.isConnected) {
+      if (!_connection.isConnected) {
         developer.log('Связь потеряна окончательно', name: 'ObdProvider');
         break;
       }
@@ -272,23 +317,22 @@ class ObdProvider extends ChangeNotifier {
   /// ===== DEMO MODE =========
 
   Future<void> toggleDemoMode() async {
-    if (_isRealMode) {
-      return;
-    }
+    if (_isRealMode) return;
 
     if (_isDemoMode) {
-      await _connection.disconnect();
       _isDemoMode = false;
+      _demoGenerator.stop();
       _data = const ObdData();
       notifyListeners();
       return;
     }
 
-    _connection = DemoObdConnection();
     _isDemoMode = true;
-    _listen();
 
-    await _connection.connect();
+    _demoGenerator.start((ObdData newObdData) {
+      _data = newObdData;
+      notifyListeners();
+    });
 
     notifyListeners();
   }
@@ -331,6 +375,7 @@ class ObdProvider extends ChangeNotifier {
   @override
   void dispose() {
     _isRealMode = false;
+    _demoGenerator.stop();
     _rxSubscription?.cancel();
     super.dispose();
   }
