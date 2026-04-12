@@ -273,10 +273,9 @@ class ObdProvider extends ChangeNotifier {
     }
 
     _isDemoMode = true;
-    _listen();
 
-    _demoGenerator.start((newData) {
-      _data = newData;
+    _demoGenerator.start((ObdData newObdData) {
+      _data = newObdData;
       notifyListeners();
     });
 

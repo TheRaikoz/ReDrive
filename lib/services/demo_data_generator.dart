@@ -6,7 +6,7 @@ class DemoDataGenerator {
   Timer? _timer;
   final _random = Random();
 
-  void start(void Function(ObdData) onData) {
+  void start(Function(ObdData) onData) {
     stop();
 
     onData(_generateData());
