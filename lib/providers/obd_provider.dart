@@ -37,6 +37,9 @@ class ObdProvider extends ChangeNotifier {
   String _initMessage = "Инициализация";
   String get initMessage => _initMessage;
 
+  bool _prevIsConnected = false;
+  bool _prevIsReconnecting = false;
+
   /// For debug    ///
   /// Для откладки ///
   set state(ObdConnectionState value) {
@@ -49,12 +52,63 @@ class ObdProvider extends ChangeNotifier {
   }
 
   void updateConnection(ObdConnection newConnection) {
-    if (_connection == newConnection) return;
-
     _connection = newConnection;
     _listen();
 
+    // Берем актуальный статус
+    final currentIsConnected = _connection.isConnected;
+    final currentIsReconnecting = _connection.isReconnecting;
+
+    // ❗️ ТЕПЕРЬ МЫ ЧИТАЕМ ИЗ ПАМЯТИ, А НЕ ИЗ ОБНОВЛЕННОГО ОБЪЕКТА
+    bool wasDisconnectedOrReconnecting =
+        !_prevIsConnected || _prevIsReconnecting;
+
+    // 1. ЛОГИКА ВОССТАНОВЛЕНИЯ:
+    if (_isRealMode &&
+        wasDisconnectedOrReconnecting &&
+        currentIsConnected &&
+        !currentIsReconnecting) {
+      _recoverEcuConnection();
+    }
+
+    // 2. ЛОГИКА ОСТАНОВКИ:
+    if (_isRealMode && !currentIsConnected && !currentIsReconnecting) {
+      stopRealData();
+    }
+
+    // ❗️ СОХРАНЯЕМ ТЕКУЩИЙ СТАТУС В ПАМЯТЬ ДЛЯ СЛЕДУЮЩЕГО РАЗА
+    _prevIsConnected = currentIsConnected;
+    _prevIsReconnecting = currentIsReconnecting;
+
     notifyListeners();
+  }
+
+  Future<void> _recoverEcuConnection() async {
+    // ❗️ ФИКС 1: Сразу жестко блокируем цикл ДО всяких await и пауз!
+    state = ObdConnectionState.initializing;
+
+    developer.log(
+      '🔄 Блютуз восстановлен. Ждем инициализации железа...',
+      name: 'ObdProvider',
+    );
+
+    // Обязательная пауза перед хендшейком, чтобы адаптер успел проснуться
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    // Проверяем, не выключил ли юзер режим, пока мы ждали секунду
+    if (!_isRealMode) return;
+
+    // Вызываем хендшейк. Он сам поставит стейт в initializing и покажет баннер
+    bool isSuccess = await runHandshake();
+
+    if (!_isRealMode) return;
+
+    if (isSuccess) {
+      state = ObdConnectionState
+          .ready; // Цикл опроса увидит ready и продолжит работу
+    } else {
+      stopRealData();
+    }
   }
 
   ObdProvider(this.currentConnection) {
@@ -155,8 +209,8 @@ class ObdProvider extends ChangeNotifier {
   /// мы отправляем запросы "инициализации" и после этого крутим
   /// цикл обработки запросов от нашего elm327 по obd2 разьёму
   Future<void> toggleRealMode() async {
-    if (!currentConnection.isConnected ||
-        (currentConnection.isReconnecting && !isRealMode)) {
+    if (!_connection.isConnected ||
+        (_connection.isReconnecting && !isRealMode)) {
       return;
     }
 
@@ -200,13 +254,14 @@ class ObdProvider extends ChangeNotifier {
   /// и как дождёмся всех обновляем UI
   Future<void> _startPollingLoop() async {
     while (_isRealMode) {
-      if (currentConnection.isReconnecting) {
+      if (_connection.isReconnecting ||
+          state == ObdConnectionState.initializing) {
         developer.log('Пауза опроса: Блютуз в реконнекте', name: 'ObdProvider');
         await Future.delayed(const Duration(seconds: 1));
         continue;
       }
 
-      if (!currentConnection.isConnected) {
+      if (!_connection.isConnected) {
         developer.log('Связь потеряна окончательно', name: 'ObdProvider');
         break;
       }
@@ -235,7 +290,7 @@ class ObdProvider extends ChangeNotifier {
       }
 
       if (_isRealMode) {
-        await Future.delayed(const Duration(milliseconds: 500));
+        await Future.delayed(const Duration(milliseconds: 1000));
       }
     }
 
@@ -307,9 +362,9 @@ class ObdProvider extends ChangeNotifier {
       if (state == ObdConnectionState.disconnected) return false;
       if (!atsp0.toUpperCase().contains("OK")) return false;
 
-      await Future.delayed(Duration(milliseconds: 300));
+      await Future.delayed(Duration(milliseconds: 3000));
 
-      return true;
+      return false;
     } catch (e) {
       _initMessage = "Ошибка инициализации";
       notifyListeners();
