@@ -55,15 +55,18 @@ class ObdProvider extends ChangeNotifier {
     _connection = newConnection;
     _listen();
 
-    // Берем актуальный статус
     final currentIsConnected = _connection.isConnected;
     final currentIsReconnecting = _connection.isReconnecting;
 
-    // ❗️ ТЕПЕРЬ МЫ ЧИТАЕМ ИЗ ПАМЯТИ, А НЕ ИЗ ОБНОВЛЕННОГО ОБЪЕКТА
+    /// Определяем, был ли обрыв связи на предыдущем шагеия
+    /// (либо не было коннекта, либо шел процесс фонового переподключения)
     bool wasDisconnectedOrReconnecting =
         !_prevIsConnected || _prevIsReconnecting;
 
-    // 1. ЛОГИКА ВОССТАНОВЛЕНИЯ:
+    /// Если включён реально,
+    /// если в переподключался
+    /// сейчас подключён и уже не переподключается
+    /// то нам нужно заново востановить handshake ( рукопожатие)
     if (_isRealMode &&
         wasDisconnectedOrReconnecting &&
         currentIsConnected &&
@@ -71,12 +74,14 @@ class ObdProvider extends ChangeNotifier {
       _recoverEcuConnection();
     }
 
-    // 2. ЛОГИКА ОСТАНОВКИ:
+    /// Если был включён человекм
+    /// и сейчас уже не подключёен и
+    /// не переподключается то стопаем
+    /// значит подключение отвалилось не нашими силами
     if (_isRealMode && !currentIsConnected && !currentIsReconnecting) {
       stopRealData();
     }
 
-    // ❗️ СОХРАНЯЕМ ТЕКУЩИЙ СТАТУС В ПАМЯТЬ ДЛЯ СЛЕДУЮЩЕГО РАЗА
     _prevIsConnected = currentIsConnected;
     _prevIsReconnecting = currentIsReconnecting;
 
@@ -84,7 +89,6 @@ class ObdProvider extends ChangeNotifier {
   }
 
   Future<void> _recoverEcuConnection() async {
-    // ❗️ ФИКС 1: Сразу жестко блокируем цикл ДО всяких await и пауз!
     state = ObdConnectionState.initializing;
 
     developer.log(
@@ -92,20 +96,16 @@ class ObdProvider extends ChangeNotifier {
       name: 'ObdProvider',
     );
 
-    // Обязательная пауза перед хендшейком, чтобы адаптер успел проснуться
     await Future.delayed(const Duration(milliseconds: 1000));
 
-    // Проверяем, не выключил ли юзер режим, пока мы ждали секунду
     if (!_isRealMode) return;
 
-    // Вызываем хендшейк. Он сам поставит стейт в initializing и покажет баннер
     bool isSuccess = await runHandshake();
 
     if (!_isRealMode) return;
 
     if (isSuccess) {
-      state = ObdConnectionState
-          .ready; // Цикл опроса увидит ready и продолжит работу
+      state = ObdConnectionState.ready;
     } else {
       stopRealData();
     }
@@ -290,7 +290,7 @@ class ObdProvider extends ChangeNotifier {
       }
 
       if (_isRealMode) {
-        await Future.delayed(const Duration(milliseconds: 1000));
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
 
@@ -362,7 +362,7 @@ class ObdProvider extends ChangeNotifier {
       if (state == ObdConnectionState.disconnected) return false;
       if (!atsp0.toUpperCase().contains("OK")) return false;
 
-      await Future.delayed(Duration(milliseconds: 3000));
+      await Future.delayed(Duration(milliseconds: 300));
 
       return true;
     } catch (e) {
