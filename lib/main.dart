@@ -19,21 +19,11 @@ void main() {
             BluetoothObdConnection(context.read<BluetoothProvider>()),
           ),
           update: (context, blueProvider, currentObdProvider) {
-            final obdProvider = currentObdProvider!;
+            currentObdProvider!.updateConnection(
+              BluetoothObdConnection(blueProvider),
+            );
 
-            obdProvider.updateConnection(BluetoothObdConnection(blueProvider));
-
-            final isBlueDead =
-                !blueProvider.isConnected &&
-                !blueProvider.isReconnectingBackground;
-
-            if (isBlueDead && obdProvider.isRealMode) {
-              Future.microtask(() {
-                obdProvider.stopRealData();
-              });
-            }
-
-            return obdProvider;
+            return currentObdProvider;
           },
         ),
       ],
@@ -60,22 +50,35 @@ class RedriveApp extends StatelessWidget {
           children: [
             child!,
 
-            Consumer<BluetoothProvider>(
-              builder: (context, provider, _) {
-                final isReconnecting = provider.isReconnectingBackground;
-                final message = provider.backgroundMessage;
+            Consumer2<BluetoothProvider, ObdProvider>(
+              builder: (context, blueProvider, obdProvider, _) {
+                final isBlueReconnecting =
+                    blueProvider.isReconnectingBackground;
+
+                final isObdRecovering =
+                    obdProvider.isRealMode &&
+                    obdProvider.state == ObdConnectionState.initializing;
+
+                final showBanner = isBlueReconnecting || isObdRecovering;
+
+                String message = "";
+                if (isBlueReconnecting) {
+                  message = blueProvider.backgroundMessage;
+                } else if (isObdRecovering) {
+                  message = obdProvider.initMessage;
+                }
 
                 return AnimatedPositioned(
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeOutCubic,
-                  top: isReconnecting
+                  top: showBanner
                       ? MediaQuery.of(context).padding.top + 10
                       : -100,
                   left: 16,
                   right: 16,
                   child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 300),
-                    opacity: isReconnecting ? 1.0 : 0.0,
+                    opacity: showBanner ? 1.0 : 0.0,
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: ReconnectionBanner(message: message),
