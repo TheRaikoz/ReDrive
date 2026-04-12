@@ -279,7 +279,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onTap: () async {
               developer.log("состояние $isConnected");
               if (isConnected) {
-                if (isActive) {
+                if (isActive ||
+                    obdProvider.state == ObdConnectionState.initializing) {
                   obdProvider.toggleRealMode();
                   return;
                 }
