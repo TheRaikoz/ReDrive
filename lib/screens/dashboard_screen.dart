@@ -403,7 +403,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   }
                 }
               } else {
-                developer.log("Bluetooth не подключен", name: 'UI');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text("Сначала подключитесь к Ble/Wifi/USB"),
+                    backgroundColor: colorScheme.error,
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
               }
             },
 
