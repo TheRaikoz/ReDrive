@@ -62,7 +62,7 @@ class ObdProvider extends ChangeNotifier {
     final currentIsConnected = _connection.isConnected;
     final currentIsReconnecting = _connection.isReconnecting;
 
-    /// Определяем, был ли обрыв связи на предыдущем шагеия
+    /// Определяем, был ли обрыв связи на предыдущем шаге
     /// (либо не было коннекта, либо шел процесс фонового переподключения)
     bool wasDisconnectedOrReconnecting =
         !_prevIsConnected || _prevIsReconnecting;
@@ -111,7 +111,7 @@ class ObdProvider extends ChangeNotifier {
     if (isSuccess) {
       state = ObdConnectionState.ready;
     } else {
-      stopRealData();
+      stopWithError("Связь потеряна: не удалось переподключиться к ЭБУ");
     }
   }
 
@@ -318,6 +318,12 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void stopWithError(String errorMessage) {
+    stopRealData();
+    _errorEventController.add(errorMessage);
+    notifyListeners();
+  }
+
   /// ===== DEMO MODE =========
 
   Future<void> toggleDemoMode() async {
@@ -380,6 +386,7 @@ class ObdProvider extends ChangeNotifier {
   void dispose() {
     _isRealMode = false;
     _demoGenerator.stop();
+    _errorEventController.close();
     _rxSubscription?.cancel();
     super.dispose();
   }
