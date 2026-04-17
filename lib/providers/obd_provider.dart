@@ -11,6 +11,10 @@ class ObdProvider extends ChangeNotifier {
   final ObdConnection currentConnection;
   late ObdConnection _connection;
 
+  /// Добавляем стрим для одноразок ui событий
+  final _errorEventController = StreamController<String>.broadcast();
+  Stream<String> get errorEvents => _errorEventController.stream;
+
   /// Возвращает статус физического подключения
   /// Ble, wifi, usb, demo режим и другие
   bool get isDeviceConnected => _connection.isConnected;
@@ -58,7 +62,7 @@ class ObdProvider extends ChangeNotifier {
     final currentIsConnected = _connection.isConnected;
     final currentIsReconnecting = _connection.isReconnecting;
 
-    /// Определяем, был ли обрыв связи на предыдущем шагеия
+    /// Определяем, был ли обрыв связи на предыдущем шаге
     /// (либо не было коннекта, либо шел процесс фонового переподключения)
     bool wasDisconnectedOrReconnecting =
         !_prevIsConnected || _prevIsReconnecting;
@@ -107,7 +111,7 @@ class ObdProvider extends ChangeNotifier {
     if (isSuccess) {
       state = ObdConnectionState.ready;
     } else {
-      stopRealData();
+      stopWithError("Связь потеряна: не удалось переподключиться к ЭБУ");
     }
   }
 
@@ -314,6 +318,12 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void stopWithError(String errorMessage) {
+    stopRealData();
+    _errorEventController.add(errorMessage);
+    notifyListeners();
+  }
+
   /// ===== DEMO MODE =========
 
   Future<void> toggleDemoMode() async {
@@ -337,7 +347,7 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// рукопожатие или же просто инициализация, обязетальна
+  /// рукопожатие или же просто инициализация, обязательна
   /// для всех obd2 разьёмов чтобы настроить всё на корректную работу
   /// с движком машины.
   Future<bool> runHandshake() async {
@@ -376,6 +386,7 @@ class ObdProvider extends ChangeNotifier {
   void dispose() {
     _isRealMode = false;
     _demoGenerator.stop();
+    _errorEventController.close();
     _rxSubscription?.cancel();
     super.dispose();
   }

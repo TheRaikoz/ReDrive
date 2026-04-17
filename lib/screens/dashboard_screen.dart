@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
@@ -13,6 +15,34 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  StreamSubscription<String>? _errorSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<ObdProvider>();
+      _errorSubscription = provider.errorEvents.listen((errorMessage) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _errorSubscription?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final obdData = context.watch<ObdProvider>().data;
@@ -390,6 +420,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (!isCanceled && context.mounted) {
                   Navigator.pop(context);
 
+                  /// Если не в реальном режиме при выходе с функции
+                  /// не переподключается в данный момент
+                  /// и не в демо режиме ( изза того что оно при вызове
+                  /// функции отключается ) то вызываем
                   if ((!obdProvider.isRealMode &&
                           !obdProvider.currentConnection.isReconnecting) &&
                       (!obdProvider.isDemoMode)) {
