@@ -11,6 +11,10 @@ class ObdProvider extends ChangeNotifier {
   final ObdConnection currentConnection;
   late ObdConnection _connection;
 
+  /// Добавляем стрим для одноразок ui событий
+  final _errorEventController = StreamController<String>.broadcast();
+  Stream<String> get errorEvents => _errorEventController.stream;
+
   /// Возвращает статус физического подключения
   /// Ble, wifi, usb, demo режим и другие
   bool get isDeviceConnected => _connection.isConnected;
@@ -364,7 +368,7 @@ class ObdProvider extends ChangeNotifier {
 
       await Future.delayed(Duration(milliseconds: 300));
 
-      return false;
+      return true;
     } catch (e) {
       _initMessage = "Ошибка инициализации";
       notifyListeners();
