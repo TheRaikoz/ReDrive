@@ -337,7 +337,7 @@ class ObdProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// рукопожатие или же просто инициализация, обязетальна
+  /// рукопожатие или же просто инициализация, обязательна
   /// для всех obd2 разьёмов чтобы настроить всё на корректную работу
   /// с движком машины.
   Future<bool> runHandshake() async {
@@ -364,7 +364,7 @@ class ObdProvider extends ChangeNotifier {
 
       await Future.delayed(Duration(milliseconds: 300));
 
-      return true;
+      return false;
     } catch (e) {
       _initMessage = "Ошибка инициализации";
       notifyListeners();
