@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:redrive/screens/car_screen.dart';
 import 'package:redrive/screens/connect_screen.dart';
-import '../core/global_state.dart';
 import 'dashboard_screen.dart';
+
+class BottomBarItemData {
+  final String iconPath;
+  final String label;
+
+  const BottomBarItemData({required this.iconPath, required this.label});
+}
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,222 +18,71 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen>
-    with SingleTickerProviderStateMixin {
+class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  final double _currentHeight = 100.0;
 
-  late AnimationController _animationController;
-  late Animation<double> _panelAnimation;
+  final Color _activeColor = const Color(0xFFBDF343);
+  final Color _inactiveColor = Colors.grey.shade600;
 
-  final double minHeight = 50.0;
-  final double maxHeight = 100.0;
+  late final List<Widget> _screens = [
+    const DashboardScreen(), // главный экран (дашборд)
+    Container(color: Colors.black), // экран приборной панели
+    const ConnectionScreen(), // экран подключения
+    const CarScreen(), // экран гаража и выбора машин
+    Container(color: Colors.black), // экран ошибок и их исправления
+  ];
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const CarScreen(),
-    Container(
-      color: Colors.green.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 3")),
+  final List<BottomBarItemData> _navItems = const [
+    BottomBarItemData(
+      iconPath: 'assets/images/svg/bottomBar/home.svg',
+      label: 'Home',
     ),
-    const ConnectionScreen(),
-    Container(
-      color: Colors.orange.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 5")),
+    BottomBarItemData(
+      iconPath: 'assets/images/svg/bottomBar/dashboard.svg',
+      label: 'Dashboard',
     ),
-    Container(
-      color: Colors.teal.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 6")),
+    BottomBarItemData(
+      iconPath: 'assets/images/svg/bottomBar/connection.svg',
+      label: 'Connection',
     ),
-    Container(
-      color: Colors.pink.withValues(alpha: 0.2),
-      child: const Center(child: Text("Экран 7")),
+    BottomBarItemData(
+      iconPath: 'assets/images/svg/bottomBar/garage.svg',
+      label: 'Garage',
+    ),
+    BottomBarItemData(
+      iconPath: 'assets/images/svg/bottomBar/dtc.svg',
+      label: 'DTC',
     ),
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-
-    _animationController.addListener(() {
-      GlobalState.panelHeight.value = _panelAnimation.value;
-    });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onDragEnd(DragEndDetails details) {
-    double currentHeight = GlobalState.panelHeight.value;
-    double midPoint = (minHeight + maxHeight) / 2;
-
-    double targetHeight;
-    if (details.primaryVelocity! < -100) {
-      targetHeight = maxHeight;
-    } else if (details.primaryVelocity! > 100) {
-      targetHeight = minHeight;
-    } else {
-      targetHeight = currentHeight >= midPoint ? maxHeight : minHeight;
-    }
-
-    _panelAnimation = Tween<double>(begin: currentHeight, end: targetHeight)
-        .animate(
-          CurvedAnimation(
-            parent: _animationController,
-            curve: Curves.easeOutCubic,
-          ),
-        );
-
-    _animationController.forward(from: 0.0);
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          ValueListenableBuilder<double>(
-            valueListenable: GlobalState.panelHeight,
-            child: IndexedStack(index: _currentIndex, children: _screens),
-            builder: (context, height, cachedChild) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: height),
-                child: cachedChild,
-              );
-            },
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _buildDraggableBottomPanel(),
-          ),
-        ],
+      backgroundColor: Colors.black,
+
+      body: IndexedStack(index: _currentIndex, children: _screens),
+
+      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      height: _currentHeight,
+      decoration: const BoxDecoration(color: Colors.black),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(_navItems.length, (index) {
+          return _buildNavItem(_navItems[index], index);
+        }),
       ),
     );
   }
 
-  Widget _buildDraggableBottomPanel() {
-    return ValueListenableBuilder<double>(
-      valueListenable: GlobalState.panelHeight,
-      builder: (context, height, child) {
-        double t = ((height - minHeight) / (maxHeight - minHeight)).clamp(
-          0.0,
-          1.0,
-        );
-
-        return GestureDetector(
-          onVerticalDragUpdate: (details) {
-            _animationController.stop();
-
-            double newHeight = height - (details.delta.dy * 1.5);
-            GlobalState.panelHeight.value = newHeight.clamp(
-              minHeight,
-              maxHeight,
-            );
-          },
-          onVerticalDragEnd: _onDragEnd,
-
-          child: Container(
-            height: height,
-            decoration: BoxDecoration(
-              color: Color.lerp(
-                Theme.of(context).colorScheme.surface,
-                Theme.of(context).colorScheme.surfaceContainer,
-                t,
-              ),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(30),
-              ),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 200,
-                  height: 20,
-                  color: Colors.transparent,
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: 35,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-
-                // Иконки
-                Opacity(
-                  opacity: t,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Row(
-                      children: [
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/home.svg',
-                          52,
-                          0,
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/car.svg',
-                          45,
-                          1,
-                          padding: const EdgeInsets.only(left: 7),
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/dashboard.svg',
-                          38,
-                          2,
-                          padding: const EdgeInsets.only(left: 10),
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/light.svg',
-                          40,
-                          3,
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/bot.svg',
-                          47,
-                          4,
-                          padding: const EdgeInsets.only(right: 8),
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/map.svg',
-                          43,
-                          5,
-                          padding: const EdgeInsets.only(right: 2),
-                        ),
-                        _buildNavItem(
-                          'assets/images/svg/bottomBar/music.svg',
-                          43,
-                          6,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildNavItem(
-    String iconPath,
-    double size,
-    int index, {
-    EdgeInsetsGeometry padding = EdgeInsets.zero,
-  }) {
+  Widget _buildNavItem(BottomBarItemData data, int index) {
     bool isActive = _currentIndex == index;
+    Color currentColor = isActive ? _activeColor : _inactiveColor;
 
     return Expanded(
       child: GestureDetector(
@@ -237,34 +92,44 @@ class _MainScreenState extends State<MainScreen>
             _currentIndex = index;
           });
         },
-
-        child: SizedBox(
-          height: 55,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: padding,
-                child: AnimatedScale(
-                  scale: isActive ? (size + 5) / size : 1.0,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                  child: SvgPicture.asset(
-                    iconPath,
-                    width: size,
-                    height: size,
-                    colorFilter: ColorFilter.mode(
-                      isActive
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.secondary,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              child: SvgPicture.asset(
+                data.iconPath,
+                width: isActive ? 25 : 23,
+                height: isActive ? 25 : 23,
+                colorFilter: ColorFilter.mode(currentColor, BlendMode.srcIn),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 6),
+
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                color: currentColor,
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+              ),
+              child: Text(data.label),
+            ),
+            const SizedBox(height: 4),
+
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOut,
+              width: isActive ? 24 : 0,
+              height: 2,
+              decoration: BoxDecoration(
+                color: currentColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ],
         ),
       ),
     );
