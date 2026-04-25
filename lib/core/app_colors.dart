@@ -9,7 +9,7 @@ class AppColors {
   static const Color cardBg = Color.fromARGB(255, 22, 26, 33);
 
   // основной цвет палитры
-  static const Color accent = Color.fromARGB(255, 71, 126, 252);
+  static const Color accent = Color(0xFFBDF343);
 
   //цвет текста
   static const Color textMainColor = Colors.white;
