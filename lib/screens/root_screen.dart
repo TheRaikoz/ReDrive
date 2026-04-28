@@ -2,20 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:redrive/screens/car_screen.dart';
 import 'package:redrive/screens/connect_screen.dart';
 import 'package:redrive/widget/bottom_bar/custom_bottom_bar.dart';
-import 'dashboard_screen.dart';
+import 'home_screen.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+class RootScreen extends StatefulWidget {
+  const RootScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<RootScreen> createState() => _RootScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _RootScreenState extends State<RootScreen> {
   int _currentIndex = 0;
 
   late final List<Widget> _screens = [
-    const DashboardScreen(),
+    const HomeScreen(),
     Container(color: Colors.black),
     const ConnectionScreen(),
     const CarScreen(),

@@ -7,14 +7,14 @@ import 'package:provider/provider.dart';
 import '../providers/obd_provider.dart';
 import 'dart:developer' as developer;
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<String>? _errorSubscription;
 
   @override

@@ -5,7 +5,7 @@ import 'package:redrive/services/bluetooth_obd_connection.dart';
 import 'providers/obd_provider.dart';
 import 'providers/bluetooth_provider.dart';
 import 'core/app_themes.dart';
-import 'screens/main_screen.dart';
+import 'screens/root_screen.dart';
 import 'widget/reconnection_banner.dart';
 
 void main() {
@@ -18,7 +18,7 @@ void main() {
           create: (context) => ObdProvider(
             BluetoothObdConnection(context.read<BluetoothProvider>()),
           ),
-          update: (context, blueProvider, currentObdProvider) {
+          update: (_, blueProvider, currentObdProvider) {
             currentObdProvider!.updateConnection(
               BluetoothObdConnection(blueProvider),
             );
@@ -41,7 +41,7 @@ class RedriveApp extends StatelessWidget {
       title: 'Redrive OBD2',
       debugShowCheckedModeBanner: false,
       theme: AppThemes.darkTheme,
-      home: const MainScreen(),
+      home: const RootScreen(),
 
       /// баннер при отключении адаптера elm'ки появляется, трактуя
       /// попытку переподключения к объекту
