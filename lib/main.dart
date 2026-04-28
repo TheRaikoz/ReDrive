@@ -18,7 +18,7 @@ void main() {
           create: (context) => ObdProvider(
             BluetoothObdConnection(context.read<BluetoothProvider>()),
           ),
-          update: (context, blueProvider, currentObdProvider) {
+          update: (_, blueProvider, currentObdProvider) {
             currentObdProvider!.updateConnection(
               BluetoothObdConnection(blueProvider),
             );
