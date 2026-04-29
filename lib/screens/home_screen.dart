@@ -69,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 15),
 
                 const CarDisplay(), // отображение карусели машин
-                const SizedBox(height: 15),
+                const SizedBox(height: 10),
 
                 /// отображение телеметрии
                 /// ( две карточки связующие с obd модулем )
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           valueSuffix: "",
                           unit: "km/h",
                           iconPath: 'assets/images/svg/dashboard/speed.svg',
-                          progress: obdData.speed / 240,
+                          progress: (obdData.speed / 240).clamp(0.0, 1.0),
                         ),
                       ),
                     ),
