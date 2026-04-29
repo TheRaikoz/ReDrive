@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-const Color _primaryColor = Color(0xFFBDF343);
-
 class ConnectionButtons extends StatelessWidget {
   final VoidCallback onConnect;
   final VoidCallback onViewDemo;
@@ -18,11 +16,21 @@ class ConnectionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
       children: [
-        _AnimatedConnectButton(isConnected: isConnected, onPressed: onConnect),
+        _AnimatedConnectButton(
+          isConnected: isConnected,
+          onPressed: onConnect,
+          colorScheme: colorScheme,
+        ),
         const SizedBox(height: 12),
-        _AnimatedDemoButton(isDemoMode: isDemoMode, onPressed: onViewDemo),
+        _AnimatedDemoButton(
+          isDemoMode: isDemoMode,
+          onPressed: onViewDemo,
+          colorScheme: colorScheme,
+        ),
       ],
     );
   }
@@ -31,10 +39,12 @@ class ConnectionButtons extends StatelessWidget {
 class _AnimatedConnectButton extends StatelessWidget {
   final bool isConnected;
   final VoidCallback onPressed;
+  final ColorScheme colorScheme;
 
   const _AnimatedConnectButton({
     required this.isConnected,
     required this.onPressed,
+    required this.colorScheme,
   });
 
   @override
@@ -45,7 +55,7 @@ class _AnimatedConnectButton extends StatelessWidget {
       width: double.infinity,
       height: isConnected ? 72.0 : 56.0,
       decoration: BoxDecoration(
-        color: _primaryColor,
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Material(
@@ -84,6 +94,7 @@ class _AnimatedConnectButton extends StatelessWidget {
             children: const [
               Text(
                 "CONNECTED",
+                textScaler: TextScaler.noScaling,
                 style: TextStyle(
                   color: Colors.black,
                   fontSize: 18,
@@ -94,6 +105,7 @@ class _AnimatedConnectButton extends StatelessWidget {
               ),
               Text(
                 "Vehicle is connected",
+                textScaler: TextScaler.noScaling,
                 style: TextStyle(
                   color: Colors.black87,
                   fontSize: 13,
@@ -111,7 +123,7 @@ class _AnimatedConnectButton extends StatelessWidget {
             color: Colors.black,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check, color: _primaryColor, size: 20),
+          child: Icon(Icons.check, color: colorScheme.primary, size: 20),
         ),
         const SizedBox(width: 16),
       ],
@@ -127,6 +139,7 @@ class _AnimatedConnectButton extends StatelessWidget {
         SizedBox(width: 10),
         Text(
           "CONNECT",
+          textScaler: TextScaler.noScaling,
           style: TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -143,10 +156,12 @@ class _AnimatedConnectButton extends StatelessWidget {
 class _AnimatedDemoButton extends StatelessWidget {
   final bool isDemoMode;
   final VoidCallback onPressed;
+  final ColorScheme colorScheme;
 
   const _AnimatedDemoButton({
     required this.isDemoMode,
     required this.onPressed,
+    required this.colorScheme,
   });
 
   @override
@@ -157,8 +172,8 @@ class _AnimatedDemoButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-          side: const BorderSide(color: _primaryColor, width: 2),
+          backgroundColor: colorScheme.surfaceContainer,
+          side: BorderSide(color: colorScheme.primary, width: 2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -172,7 +187,7 @@ class _AnimatedDemoButton extends StatelessWidget {
             return FadeTransition(
               opacity: animation,
               child: ScaleTransition(
-                scale: Tween<double>(begin: 0.9, end: 1.0).animate(animation),
+                scale: Tween<double>(begin: 0.5, end: 1.0).animate(animation),
                 child: child,
               ),
             );
@@ -196,12 +211,13 @@ class _AnimatedDemoButton extends StatelessWidget {
       key: key,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, color: _primaryColor, size: 24),
+        Icon(icon, color: colorScheme.primary, size: 24),
         const SizedBox(width: 10),
         Text(
           text,
-          style: const TextStyle(
-            color: _primaryColor,
+          textScaler: TextScaler.noScaling,
+          style: TextStyle(
+            color: colorScheme.primary,
             fontSize: 18,
             fontFamily: 'Inter',
             fontWeight: FontWeight.w800,
