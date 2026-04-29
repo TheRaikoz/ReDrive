@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // основной фон
-  static const Color background = Color(0xFF111111);
+  static const Color background = Color.fromARGB(255, 5, 5, 5);
 
   // фон карточек
   // static const Color cardBg = Color.fromARGB(255, 81, 94, 118);
-  static const Color cardBg = Color.fromARGB(255, 22, 26, 33);
+  static const Color cardBg = Color(0xFF141414);
 
   // основной цвет палитры
+  // Color(0xFFBDF343);
   static const Color accent = Color(0xFFBDF343);
 
   //цвет текста
