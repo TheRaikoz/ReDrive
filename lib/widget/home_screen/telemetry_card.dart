@@ -10,8 +10,6 @@ class TelemetryCard extends StatelessWidget {
   final String iconPath;
   final double progress;
 
-  static const Duration _animDuration = Duration(milliseconds: 250);
-
   const TelemetryCard({
     super.key,
     required this.title,
@@ -30,113 +28,163 @@ class TelemetryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: colorScheme.onSurface.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _buildIcon(colorScheme),
-
-              const SizedBox(width: 4),
-              Text(
-                title.toUpperCase(),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 3,
-                ),
-              ),
-            ],
-          ),
-
-          const Spacer(),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: value),
-                duration: _animDuration,
-                curve: Curves.easeOut,
-                builder: (context, animValue, child) {
-                  return Text(
-                    "${animValue.toStringAsFixed(fractionDigits)}$valueSuffix",
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 50,
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                    ),
-                  );
-                },
-              ),
-              Text(
-                unit.toUpperCase(),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.4),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+          _CardHeader(
+            title: title,
+            iconPath: iconPath,
+            colorScheme: colorScheme,
           ),
           const Spacer(),
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: progress),
-            duration: _animDuration,
-            curve: Curves.easeOut,
-            builder: (context, animProgress, child) {
-              return _buildSegmentedIndicator(animProgress);
-            },
+
+          _AnimatedValue(
+            value: value,
+            suffix: valueSuffix,
+            fractionDigits: fractionDigits,
+            unit: unit,
+            colorScheme: colorScheme,
           ),
+          const Spacer(),
+
+          _SegmentedIndicator(progress: progress, colorScheme: colorScheme),
         ],
       ),
     );
   }
+}
 
-  Widget _buildIcon(ColorScheme colorScheme) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Color.fromARGB(0, 26, 26, 31),
-      ),
-      child: SvgPicture.asset(
-        iconPath,
-        width: 16,
-        height: 16,
-        colorFilter: const ColorFilter.mode(Color(0xFFBDF343), BlendMode.srcIn),
-      ),
+class _CardHeader extends StatelessWidget {
+  final String title;
+  final String iconPath;
+  final ColorScheme colorScheme;
+
+  const _CardHeader({
+    required this.title,
+    required this.iconPath,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SvgPicture.asset(
+          iconPath,
+          width: 16,
+          height: 16,
+          colorFilter: ColorFilter.mode(colorScheme.primary, BlendMode.srcIn),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title.toUpperCase(),
+          textScaler: TextScaler.noScaling,
+          style: TextStyle(
+            color: colorScheme.onSurface.withValues(alpha: 0.5),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 3,
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _buildSegmentedIndicator(double currentProgress) {
-    const int totalSegments = 18;
-    int filledSegments = (currentProgress * totalSegments).round();
+class _AnimatedValue extends StatelessWidget {
+  final double value;
+  final String suffix;
+  final int fractionDigits;
+  final String unit;
+  final ColorScheme colorScheme;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(totalSegments, (index) {
-        bool isFilled = index < filledSegments;
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 100),
-          width: 6,
-          height: 14,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(2),
-            color: isFilled
-                ? const Color(0xFFBDF343)
-                : Colors.white.withValues(alpha: 0.1),
+  const _AnimatedValue({
+    required this.value,
+    required this.suffix,
+    required this.fractionDigits,
+    required this.unit,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.0, end: value),
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          builder: (context, animValue, _) {
+            return Text(
+              "${animValue.toStringAsFixed(fractionDigits)}$suffix",
+              textScaler: TextScaler.noScaling,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 44,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+              ),
+            );
+          },
+        ),
+        Text(
+          unit.toUpperCase(),
+          textScaler: TextScaler.noScaling,
+          style: TextStyle(
+            color: colorScheme.onSurface.withValues(alpha: 0.4),
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SegmentedIndicator extends StatelessWidget {
+  final double progress;
+  final ColorScheme colorScheme;
+  static const int totalSegments = 18;
+
+  const _SegmentedIndicator({
+    required this.progress,
+    required this.colorScheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: progress),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      builder: (context, animProgress, _) {
+        final filledSegments = (animProgress * totalSegments).round();
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(totalSegments, (index) {
+            return Container(
+              width: 6,
+              height: 14,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(2),
+                color: index < filledSegments
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withValues(alpha: 0.1),
+              ),
+            );
+          }),
         );
-      }),
+      },
     );
   }
 }
