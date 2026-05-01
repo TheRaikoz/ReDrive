@@ -63,9 +63,9 @@
 * [![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
 
 ## App Interface
-<div style="display: flex; justify-content: center; gap: 10px; align-items: stretch;">
-  <img src="docs/screenshots/1.jpg" style="width: 49%; height: 500px; object-fit: cover; border-radius: 8px;" />
-  <img src="docs/screenshots/2.png" style="width: 49%; height: 500px; object-fit: cover; border-radius: 8px;" />
+<div style="display: flex; justify-content: center; gap: 10px;">
+  <img src="docs/screenshots/1.jpg" width="49%" />
+  <img src="docs/screenshots/2.png" width="49%" />
 </div>
 
 ## Why ReDrive?
