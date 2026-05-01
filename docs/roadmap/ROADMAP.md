@@ -282,7 +282,7 @@ The fault codes page is a key feature of any OBD2 app. The user shouldn't just s
 
 In the first phase, Garage should be simple. No need for a complex vehicle database initially. Just store a vehicle profile and associated data.
 
-## Vehicle Profile
+## Vehicle Profile.
 
 - [ ] Create `VehicleProfile` model
 - [ ] Add vehicle ID
