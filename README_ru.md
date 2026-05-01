@@ -104,8 +104,6 @@ flutter pub get
 ```sh
 flutter run
 ```
-<br>
-
 
 
 ## Структура репозитория
