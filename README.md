@@ -1,6 +1,5 @@
 <a id="readme"></a>
 # ReDrive
----
 > **ReDrive** is an open-source application for working with OBD2 adapters, allowing you to connect to your car via Bluetooth, Wi-Fi, or USB, read sensor data, diagnose errors, and much more.
 <div align="center">
   <img src="docs/app.png" alt="ReDrive App" width="100%" />
