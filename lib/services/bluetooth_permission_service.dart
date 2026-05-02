@@ -13,16 +13,16 @@ Future<bool> requestBluetoothPermissions() async {
   Map<Permission, PermissionStatus> statuses = {};
 
   if (sdk >= 31) {
-    // ✅ Android 12+
+    // Android 12+
     statuses = await [
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
     ].request();
   } else if (sdk >= 29) {
-    // ✅ Android 10–11
+    // Android 10–11
     statuses = await [Permission.location, Permission.bluetooth].request();
   } else {
-    // ✅ Android 9 и ниже
+    // Android 9 и ниже
     statuses = await [Permission.location].request();
   }
 
