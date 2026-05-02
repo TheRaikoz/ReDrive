@@ -9,15 +9,44 @@ class AppThemes {
 
     colorScheme: const ColorScheme.dark(
       primary: AppColors.accent, // основной цвет палитры
-      surface: AppColors.background, // основной фон
-      surfaceContainer: AppColors.cardBg, // фон карточек
-      onSurface: AppColors.textMainColor, // цвет текста
-      secondary:
-          AppColors.accentIconsBottomBar, // основной цвет иконок bottom bar
+      onPrimary: Colors.black,
 
-      outlineVariant: Color(0xFF404040), // цвет основнойо обводки
-      outline: Colors.white,
+      surface: AppColors.background, // Основной фон приложения
+      surfaceContainer:
+          AppColors.cardBg, // Фоновая плашка для карточек/контейнеров
+
+      onSurface:
+          AppColors.textMainColor, // Основной текст (заголовки, жирный текст)
+      onSurfaceVariant: Color.fromARGB(
+        44,
+        122,
+        114,
+        114,
+      ), // Второстепенный текст (подзаголовки, описания)
+
+      outlineVariant: Color(0xFF404040), // Главные бордеры (текст-филды)
+      outline: Colors.black, // Второстепенные разделители (Divider)
     ),
+
+    // // --- АКЦЕНТЫ (Кнопки, выделения, FAB, активные иконки) ---
+    //       primary: AppColors.neonGreen,
+    //       onPrimary: Colors.black, // Каким цветом писать текст НА primary-кнопке?
+
+    //       // Второстепенные акценты (например, FloatingActionButton или особые иконки)
+    //       secondary: AppColors.neonGreen, // Можно продублировать primary, если палитра узкая
+    //       onSecondary: Colors.black,
+
+    //       // --- ФОНЫ (Экраны, карточки, диалоги) ---
+    //       surface: AppColors.pitchBlack, // Основной фон приложения
+    //       surfaceContainer: AppColors.darkGray, // Фоновая плашка для карточек/контейнеров
+
+    //       // --- ТЕКСТЫ И ИКОНКИ (Что лежит поверх фонов) ---
+    //       onSurface: AppColors.white, // Основной текст (заголовки, жирный текст)
+    //       onSurfaceVariant: AppColors.textMuted, // Второстепенный текст (подзаголовки, описания)
+
+    //       // --- ОБВОДКИ И РАЗДЕЛИТЕЛИ ---
+    //       outline: AppColors.borderGray, // Главные бордеры (текст-филды)
+    //       outlineVariant: Colors.black, // Второстепенные разделители (Divider)
 
     // splashColor: Colors.transparent,
     // highlightColor: Colors.transparent,

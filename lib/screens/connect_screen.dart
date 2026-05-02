@@ -1,41 +1,91 @@
 import 'package:flutter/material.dart';
-import '../widget/connection/bluetooth_panel.dart';
+import 'package:redrive/widget/connection/bluetooth/bluetooth_tab.dart';
+import 'package:redrive/widget/connection/connection_screen/bluetooth_waiting_widget.dart';
+import 'package:redrive/widget/connection/connection_screen/custom_tab_bar.dart';
 
-class ConnectionScreen extends StatelessWidget {
+class ConnectionScreen extends StatefulWidget {
   const ConnectionScreen({super.key});
 
   @override
+  State<ConnectionScreen> createState() => _ConnectionScreenState();
+}
+
+class _ConnectionScreenState extends State<ConnectionScreen> {
+  ConnectionTab _selectedTab = ConnectionTab.bluetooth;
+  bool _isBluetoothActivated = false;
+
+  void _activateBluetooth() {
+    setState(() {
+      _isBluetoothActivated = true;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.only(top: 3, left: 20, right: 20),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-                const Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text(
-                    textScaler: TextScaler.noScaling,
-                    "Подключение",
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
-                  ),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Connection",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface,
+                  letterSpacing: -0.8,
+                  height: 1.0,
                 ),
+              ),
 
-                const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
-                const BluetoothPanel(),
+              CustomTabBar(
+                selectedTab: _selectedTab,
+                onTabSelected: (tab) {
+                  setState(() => _selectedTab = tab);
+                },
+              ),
 
-                const SizedBox(height: 20),
+              const SizedBox(height: 14),
 
-                // const WifiPanel(),
-              ],
-            ),
+              Expanded(child: _buildTabContent(colorScheme)),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTabContent(ColorScheme colorScheme) {
+    return IndexedStack(
+      index: _selectedTab.index,
+      children: [
+        _isBluetoothActivated
+            ? const BluetoothTab()
+            : BluetoothWaitingWidget(onActivate: _activateBluetooth),
+
+        const Center(
+          child: Text(
+            "Wi-Fi подключение в разработке",
+            style: TextStyle(color: Colors.white54),
+          ),
+        ),
+
+        const Center(
+          child: Text(
+            "USB подключение в разработке",
+            style: TextStyle(color: Colors.white54),
+          ),
+        ),
+      ],
     );
   }
 }
