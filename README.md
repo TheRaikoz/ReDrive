@@ -64,7 +64,7 @@
 ## App Interface
 <div style="display: flex; justify-content: center; gap: 10px;">
   <img src="docs/screenshots/1.png" width="49%" />
-  <img src="docs/screenshots/2.png" width="49%" />
+  <img src="docs/screenshots/2.png?v=2" width="49%" />
 </div>
 
 ## Why ReDrive?
