@@ -173,6 +173,7 @@ ReDrive/
 2. Turn on the ignition or start the engine.
 3. Pair your smartphone with the adapter (Bluetooth/Wi-Fi/USB).
 4. Open **ReDrive**, go to the connection section and select your adapter.
+5. You can also use our emulator for tests: https://github.com/iUnreallx/ELM327-Emulator
 
 ## Roadmap 
 
