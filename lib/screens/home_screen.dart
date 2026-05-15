@@ -108,6 +108,59 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 10),
 
+                /// отображение телеметрии
+                /// ( температура двигателя и cvt )
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Engine Temp",
+                          value: obdData.engineTemp.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "°C",
+                          iconPath: 'assets/images/svg/dashboard/temp.svg',
+                          progress: (obdData.engineTemp / 130).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "CVT Temp",
+                          value: obdData.cvtTemp.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "°C",
+                          iconPath: 'assets/images/svg/dashboard/temp.svg',
+                          progress: (obdData.cvtTemp / 130).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                /// отображение телеметрии
+                /// ( напряжение )
+                SizedBox(
+                  height: 190,
+                  child: TelemetryCard(
+                    title: "Voltage",
+                    value: obdData.voltage,
+                    fractionDigits: 1,
+                    valueSuffix: "",
+                    unit: "V",
+                    iconPath: 'assets/images/svg/dashboard/settings.svg',
+                    progress: (obdData.voltage / 16.0).clamp(0.0, 1.0),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 /// кнопки для подключения к эбу
                 /// либо для подключения демо режима
                 ConnectionButtons(

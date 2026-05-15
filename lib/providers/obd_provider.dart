@@ -193,6 +193,11 @@ class ObdProvider extends ChangeNotifier {
           engineTemp: int.parse(parts[2], radix: 16) - 40,
         );
 
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "2C") {
+        return currentBatchData.copyWith(
+          cvtTemp: int.parse(parts[2], radix: 16) - 40,
+        );
+
         /// напряжение сети
       } else if (cleanData.contains('V')) {
         final voltValue = double.tryParse(cleanData.replaceAll('V', ''));
@@ -283,6 +288,10 @@ class ObdProvider extends ChangeNotifier {
       String tempRes = await _sendAndWait("0105");
       if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(tempRes, batchData);
+
+      String cvtTempRes = await _sendAndWait("012C");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(cvtTempRes, batchData);
 
       String voltRes = await _sendAndWait("ATRV");
       if (!_isRealMode || !_connection.isConnected) return;
