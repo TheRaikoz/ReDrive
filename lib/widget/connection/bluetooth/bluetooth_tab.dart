@@ -2,6 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:redrive/models/obd_device.dart';
 import 'package:redrive/providers/bluetooth_provider.dart';
+import 'package:redrive/providers/ble_provider.dart';
+import 'package:redrive/providers/connection_mode_provider.dart';
+import 'package:redrive/providers/base_obd_transport_provider.dart';
+
+BaseObdTransportProvider _activeProvider(BuildContext context) {
+  final mode = context.watch<ConnectionModeProvider>().mode;
+  return mode == ConnectionMode.classic
+      ? context.read<BluetoothProvider>()
+      : context.read<BleProvider>();
+}
 
 class BluetoothTab extends StatefulWidget {
   const BluetoothTab({super.key});
@@ -18,12 +28,12 @@ class _BluetoothTabState extends State<BluetoothTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      final provider = context.read<BluetoothProvider>();
+      final provider = _activeProvider(context);
 
       if (!provider.isScanning && !provider.isConnected) {
         Future.delayed(const Duration(milliseconds: 50), () {
           if (!mounted) return;
-          context.read<BluetoothProvider>().startScan();
+          _activeProvider(context).startScan();
         });
       }
     });
@@ -41,20 +51,20 @@ class _BluetoothTabState extends State<BluetoothTab> {
   }
 }
 
-/// Карточка статуса сканирования.
-/// Слушает только isScanning и количество найденных устройств.
 class BluetoothScanStatusCard extends StatelessWidget {
   const BluetoothScanStatusCard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isScanning = context.select<BluetoothProvider, bool>(
-      (provider) => provider.isScanning,
-    );
+    final mode = context.watch<ConnectionModeProvider>().mode;
 
-    final devicesCount = context.select<BluetoothProvider, int>(
-      (provider) => provider.discoveredDevices.length,
-    );
+    final isScanning = mode == ConnectionMode.classic
+        ? context.select<BluetoothProvider, bool>((p) => p.isScanning)
+        : context.select<BleProvider, bool>((p) => p.isScanning);
+
+    final devicesCount = mode == ConnectionMode.classic
+        ? context.select<BluetoothProvider, int>((p) => p.discoveredDevices.length)
+        : context.select<BleProvider, int>((p) => p.discoveredDevices.length);
 
     return Material(
       color: Colors.transparent,
@@ -69,7 +79,7 @@ class BluetoothScanStatusCard extends StatelessWidget {
             if (!isScanning) {
               Future.delayed(const Duration(milliseconds: 150), () {
                 if (!context.mounted) return;
-                context.read<BluetoothProvider>().startScan();
+                _activeProvider(context).startScan();
               });
             }
           },
@@ -149,7 +159,6 @@ class BluetoothScanStatusCard extends StatelessWidget {
   }
 }
 
-/// Основная панель со списком Bluetooth-устройств.
 class BluetoothDevicePanel extends StatelessWidget {
   const BluetoothDevicePanel({super.key});
 
@@ -170,43 +179,61 @@ class BluetoothDevicePanel extends StatelessWidget {
   }
 }
 
-/// Переключатель Classic / BLE.
-/// Пока статичный, поэтому вообще не слушает provider.
 class BluetoothModeSwitcher extends StatelessWidget {
   const BluetoothModeSwitcher({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final modeProvider = context.watch<ConnectionModeProvider>();
+
     return Row(
       children: [
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFC4FF47),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(24)),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              "Classic",
-              textScaler: TextScaler.noScaling,
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
+          child: GestureDetector(
+            onTap: () => modeProvider.setMode(ConnectionMode.classic),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: modeProvider.isClassic
+                    ? const Color(0xFFC4FF47)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                "Classic",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: modeProvider.isClassic ? Colors.black : Colors.white54,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
         ),
         Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            alignment: Alignment.center,
-            child: const Text(
-              "BLE",
-              textScaler: TextScaler.noScaling,
-              style: TextStyle(
-                color: Colors.white54,
-                fontWeight: FontWeight.bold,
+          child: GestureDetector(
+            onTap: () => modeProvider.setMode(ConnectionMode.ble),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: modeProvider.isBle
+                    ? const Color(0xFFC4FF47)
+                    : Colors.transparent,
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                "BLE",
+                textScaler: TextScaler.noScaling,
+                style: TextStyle(
+                  color: modeProvider.isBle ? Colors.black : Colors.white54,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -216,13 +243,23 @@ class BluetoothModeSwitcher extends StatelessWidget {
   }
 }
 
-/// Список устройств.
-/// Перестраивается только когда изменились:
-/// - isScanning;
-/// - количество устройств;
-/// - имя или адрес устройства.
 class BluetoothDeviceList extends StatelessWidget {
   const BluetoothDeviceList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = context.watch<ConnectionModeProvider>().mode;
+
+    if (mode == ConnectionMode.classic) {
+      return const _ClassicDeviceList();
+    } else {
+      return const _BleDeviceList();
+    }
+  }
+}
+
+class _ClassicDeviceList extends StatelessWidget {
+  const _ClassicDeviceList();
 
   @override
   Widget build(BuildContext context) {
@@ -248,75 +285,189 @@ class BluetoothDeviceList extends StatelessWidget {
         return false;
       },
       builder: (context, state, child) {
-        if (state.devices.isEmpty && !state.isScanning) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 80,
-                  color: const Color(0xFFC4FF47).withValues(alpha: 0.2),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "No devices found",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Make sure the scanner is plugged in and the\nignition is turned on",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white54, fontSize: 14),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: 200,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () =>
-                        context.read<BluetoothProvider>().startScan(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC4FF47),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                    ),
-                    child: const Text(
-                      "Start Scanning",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
+        return _buildList(context, state);
+      },
+    );
+  }
 
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: state.devices.length,
-          separatorBuilder: (context, index) {
-            return Divider(color: Colors.white.withAlpha(10), height: 1);
-          },
-          itemBuilder: (context, index) {
-            final device = state.devices[index];
+  Widget _buildList(BuildContext context, _BluetoothDeviceListState state) {
+    if (state.devices.isEmpty && !state.isScanning) {
+      return _emptyState(context);
+    }
 
-            return BluetoothDeviceTile(
-              key: ValueKey(device.address),
-              device: device,
-            );
-          },
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: state.devices.length,
+      separatorBuilder: (context, index) {
+        return Divider(color: Colors.white.withAlpha(10), height: 1);
+      },
+      itemBuilder: (context, index) {
+        final device = state.devices[index];
+
+        return BluetoothDeviceTile(
+          key: ValueKey(device.address),
+          device: device,
         );
       },
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 80,
+            color: const Color(0xFFC4FF47).withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "No devices found",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Make sure the scanner is plugged in and the\nignition is turned on",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: 200,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () => _activeProvider(context).startScan(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC4FF47),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: const Text(
+                "Start Scanning",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BleDeviceList extends StatelessWidget {
+  const _BleDeviceList();
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<BleProvider, _BluetoothDeviceListState>(
+      selector: (_, provider) {
+        return _BluetoothDeviceListState(
+          isScanning: provider.isScanning,
+          devices: List<ObdDevice>.of(provider.discoveredDevices),
+        );
+      },
+      shouldRebuild: (previous, next) {
+        if (previous.isScanning != next.isScanning) return true;
+        if (previous.devices.length != next.devices.length) return true;
+
+        for (int i = 0; i < previous.devices.length; i++) {
+          final oldDevice = previous.devices[i];
+          final newDevice = next.devices[i];
+
+          if (oldDevice.address != newDevice.address) return true;
+          if (oldDevice.name != newDevice.name) return true;
+        }
+
+        return false;
+      },
+      builder: (context, state, child) {
+        return _buildList(context, state);
+      },
+    );
+  }
+
+  Widget _buildList(BuildContext context, _BluetoothDeviceListState state) {
+    if (state.devices.isEmpty && !state.isScanning) {
+      return _emptyState(context);
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: state.devices.length,
+      separatorBuilder: (context, index) {
+        return Divider(color: Colors.white.withAlpha(10), height: 1);
+      },
+      itemBuilder: (context, index) {
+        final device = state.devices[index];
+
+        return BluetoothDeviceTile(
+          key: ValueKey(device.address),
+          device: device,
+        );
+      },
+    );
+  }
+
+  Widget _emptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 80,
+            color: const Color(0xFFC4FF47).withValues(alpha: 0.2),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "No BLE devices found",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            "Make sure your BLE OBD adapter is powered\nand in range",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white54, fontSize: 14),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: 200,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: () => _activeProvider(context).startScan(),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFC4FF47),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
+              ),
+              child: const Text(
+                "Start Scanning",
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -328,24 +479,29 @@ class BluetoothDeviceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final connectedAddress = context.select<BluetoothProvider, String?>(
-      (provider) => provider.connectedDevice?.address,
-    );
+    final mode = context.watch<ConnectionModeProvider>().mode;
+
+    final connectedAddress = mode == ConnectionMode.classic
+        ? context.select<BluetoothProvider, String?>(
+            (p) => p.connectedDevice?.address,
+          )
+        : context.select<BleProvider, String?>(
+            (p) => p.connectedDevice?.address,
+          );
 
     final isConnected = connectedAddress == device.address;
 
-    // Пока заглушка. Лучше потом брать реальный paired/status из ObdDevice.
     final isPaired = !isConnected;
 
     return ListTile(
       onTap: isConnected
           ? null
           : () {
-              final provider = context.read<BluetoothProvider>();
+              final provider = _activeProvider(context);
               _connectToAdapter(context, provider, device);
             },
       leading: Icon(
-        Icons.bluetooth,
+        device.isBle ? Icons.bluetooth_searching : Icons.bluetooth,
         color: isConnected ? const Color(0xFFC4FF47) : Colors.white54,
       ),
       title: Text(
@@ -399,10 +555,9 @@ class BluetoothDeviceTile extends StatelessWidget {
   }
 }
 
-/// Логика подключения к конкретному Bluetooth-адаптеру.
 Future<void> _connectToAdapter(
   BuildContext context,
-  BluetoothProvider provider,
+  BaseObdTransportProvider provider,
   ObdDevice device,
 ) async {
   bool isCanceled = false;
@@ -436,8 +591,13 @@ Future<void> _connectToAdapter(
                     ),
                   ),
 
-                  Selector<BluetoothProvider, String>(
-                    selector: (_, provider) => provider.connectionMessage,
+                  Selector<ConnectionModeProvider, String>(
+                    selector: (_, modeProvider) {
+                      final mode = modeProvider.mode;
+                      return mode == ConnectionMode.classic
+                          ? context.read<BluetoothProvider>().connectionMessage
+                          : context.read<BleProvider>().connectionMessage;
+                    },
                     builder: (context, message, child) {
                       return Text(
                         message,

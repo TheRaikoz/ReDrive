@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:developer' as developer;
-import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:flutter_blue_classic/flutter_blue_classic.dart';
+import 'package:redrive/providers/base_obd_transport_provider.dart';
 import 'package:redrive/services/bluetooth_permission_service.dart';
 import '../models/obd_device.dart';
 
@@ -9,7 +10,7 @@ import '../models/obd_device.dart';
 ///
 /// Обеспечивает жизненный цикл соединений: от сканирования до обмена данными.
 /// Реализует защиту от race conditions с помощью системы уникальных ID вызовов.
-class BluetoothProvider extends ChangeNotifier {
+class BluetoothProvider extends BaseObdTransportProvider {
   final FlutterBlueClassic _bluetooth = FlutterBlueClassic();
 
   /// сканируется ?
@@ -105,7 +106,7 @@ class BluetoothProvider extends ChangeNotifier {
       ObdDevice(
         name: device.name ?? "Неизвестное устройство",
         address: device.address,
-        isBle: false,
+        connectionType: ConnectionType.classic,
       ),
     );
   }
