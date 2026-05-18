@@ -95,9 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 190,
                         child: TelemetryCard(
                           title: "RPM",
-                          value: obdData.rpm / 1000,
-                          fractionDigits: 1,
-                          valueSuffix: "K",
+                          value: obdData.rpm.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
                           unit: "rpm",
                           iconPath: 'assets/images/svg/dashboard/engine.svg',
                           progress: (obdData.rpm / 8000).clamp(0.0, 1.0),
@@ -158,6 +158,221 @@ class _HomeScreenState extends State<HomeScreen> {
                     iconPath: 'assets/images/svg/dashboard/settings.svg',
                     progress: (obdData.voltage / 16.0).clamp(0.0, 1.0),
                   ),
+                ),
+                const SizedBox(height: 10),
+
+                /// температуры
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Intake Air Temp",
+                          value: obdData.intakeAirTemp.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "°C",
+                          iconPath: 'assets/images/svg/dashboard/temp.svg',
+                          progress: (obdData.intakeAirTemp / 80).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Oil Temp",
+                          value: obdData.engineOilTemp.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "°C",
+                          iconPath: 'assets/images/svg/dashboard/temp.svg',
+                          progress: (obdData.engineOilTemp / 150).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Ambient Temp",
+                          value: obdData.ambientTemp.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "°C",
+                          iconPath: 'assets/images/svg/dashboard/temp.svg',
+                          progress: ((obdData.ambientTemp + 10) / 60).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Throttle",
+                          value: obdData.throttlePos,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "%",
+                          iconPath: 'assets/images/svg/dashboard/engine.svg',
+                          progress: (obdData.throttlePos / 100).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                /// топливо и нагрузка
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Fuel Level",
+                          value: obdData.fuelLevel,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "%",
+                          iconPath: 'assets/images/svg/dashboard/fuel.svg',
+                          progress: (obdData.fuelLevel / 100).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Engine Load",
+                          value: obdData.engineLoad,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "%",
+                          iconPath: 'assets/images/svg/dashboard/engine.svg',
+                          progress: (obdData.engineLoad / 100).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                /// давление
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Intake Map",
+                          value: obdData.intakeMap.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "kPa",
+                          iconPath: 'assets/images/svg/dashboard/engine.svg',
+                          progress: (obdData.intakeMap / 250).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Barometric",
+                          value: obdData.barometricPressure.toDouble(),
+                          fractionDigits: 0,
+                          valueSuffix: "",
+                          unit: "kPa",
+                          iconPath: 'assets/images/svg/dashboard/settings.svg',
+                          progress: ((obdData.barometricPressure - 80) / 40).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                /// MAF и напряжение ЭБУ
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "MAF",
+                          value: obdData.maf,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "g/s",
+                          iconPath: 'assets/images/svg/dashboard/engine.svg',
+                          progress: (obdData.maf / 50).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "ECU Voltage",
+                          value: obdData.controlModuleVoltage,
+                          fractionDigits: 2,
+                          valueSuffix: "",
+                          unit: "V",
+                          iconPath: 'assets/images/svg/dashboard/settings.svg',
+                          progress: (obdData.controlModuleVoltage / 16).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                /// угол опережения и расход
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Timing",
+                          value: obdData.timingAdvance,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "°",
+                          iconPath: 'assets/images/svg/dashboard/engine.svg',
+                          progress: ((obdData.timingAdvance + 10) / 60).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 190,
+                        child: TelemetryCard(
+                          title: "Fuel Rate",
+                          value: obdData.fuelRate,
+                          fractionDigits: 1,
+                          valueSuffix: "",
+                          unit: "L/h",
+                          iconPath: 'assets/images/svg/dashboard/fuel.svg',
+                          progress: (obdData.fuelRate / 80).clamp(0.0, 1.0),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
 

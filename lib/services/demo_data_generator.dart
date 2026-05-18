@@ -23,11 +23,23 @@ class DemoDataGenerator {
 
   ObdData _generateData() {
     return ObdData(
-      speed: 30 + _random.nextInt(270), // от 0 до 300 км/ч
-      rpm: 800 + _random.nextInt(14000), // от 800 до 14799 об/мин
-      engineTemp: 30 + _random.nextInt(80), // от 30 до 109 °C
-      cvtTemp: 40 + _random.nextInt(60), // от 40 до 99 °C
-      voltage: 13.0 + (_random.nextDouble() * 2.5), // от 13.0 до 15.5 V
+      speed: 30 + _random.nextInt(270),
+      rpm: 800 + _random.nextInt(14000),
+      engineTemp: 30 + _random.nextInt(80),
+      cvtTemp: 40 + _random.nextInt(60),
+      voltage: 13.0 + (_random.nextDouble() * 2.5),
+      intakeAirTemp: 10 + _random.nextInt(40),
+      engineOilTemp: 40 + _random.nextInt(60),
+      ambientTemp: -5 + _random.nextInt(40),
+      throttlePos: _random.nextDouble() * 100,
+      fuelLevel: 20 + _random.nextDouble() * 80,
+      engineLoad: 10 + _random.nextDouble() * 80,
+      intakeMap: 30 + _random.nextInt(70),
+      barometricPressure: 95 + _random.nextInt(15),
+      maf: 2.0 + _random.nextDouble() * 18,
+      controlModuleVoltage: 13.0 + (_random.nextDouble() * 2.5),
+      timingAdvance: _random.nextDouble() * 40,
+      fuelRate: 1.0 + _random.nextDouble() * 20,
     );
   }
 }

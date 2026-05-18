@@ -200,6 +200,72 @@ class ObdProvider extends ChangeNotifier {
           cvtTemp: ((a * 256 + b) * 0.84 - 40).round(),
         );
 
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "04") {
+        return currentBatchData.copyWith(
+          engineLoad: int.parse(parts[2], radix: 16) / 2.55,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "0B") {
+        return currentBatchData.copyWith(
+          intakeMap: int.parse(parts[2], radix: 16),
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "0E") {
+        return currentBatchData.copyWith(
+          timingAdvance: int.parse(parts[2], radix: 16) / 2 - 64,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "0F") {
+        return currentBatchData.copyWith(
+          intakeAirTemp: int.parse(parts[2], radix: 16) - 40,
+        );
+
+      } else if (parts.length >= 4 && parts[0] == "41" && parts[1] == "10") {
+        final a = int.parse(parts[2], radix: 16);
+        final b = int.parse(parts[3], radix: 16);
+        return currentBatchData.copyWith(
+          maf: (a * 256 + b) / 100,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "11") {
+        return currentBatchData.copyWith(
+          throttlePos: int.parse(parts[2], radix: 16) / 2.55,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "2F") {
+        return currentBatchData.copyWith(
+          fuelLevel: int.parse(parts[2], radix: 16) / 2.55,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "33") {
+        return currentBatchData.copyWith(
+          barometricPressure: int.parse(parts[2], radix: 16),
+        );
+
+      } else if (parts.length >= 4 && parts[0] == "41" && parts[1] == "42") {
+        final a = int.parse(parts[2], radix: 16);
+        final b = int.parse(parts[3], radix: 16);
+        return currentBatchData.copyWith(
+          controlModuleVoltage: (a * 256 + b) / 1000,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "46") {
+        return currentBatchData.copyWith(
+          ambientTemp: int.parse(parts[2], radix: 16) - 40,
+        );
+
+      } else if (parts.length >= 3 && parts[0] == "41" && parts[1] == "5C") {
+        return currentBatchData.copyWith(
+          engineOilTemp: int.parse(parts[2], radix: 16) - 40,
+        );
+
+      } else if (parts.length >= 4 && parts[0] == "41" && parts[1] == "5E") {
+        final a = int.parse(parts[2], radix: 16);
+        final b = int.parse(parts[3], radix: 16);
+        return currentBatchData.copyWith(
+          fuelRate: (a * 256 + b) * 0.05,
+        );
+
         /// напряжение сети
       } else if (cleanData.contains('V')) {
         final voltValue = double.tryParse(cleanData.replaceAll('V', ''));
@@ -303,6 +369,54 @@ class ObdProvider extends ChangeNotifier {
       String voltRes = await _sendAndWait("ATRV");
       if (!_isRealMode || !_connection.isConnected) return;
       batchData = _parseResponse(voltRes, batchData);
+
+      String engLoadRes = await _sendAndWait("0104");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(engLoadRes, batchData);
+
+      String intakeMapRes = await _sendAndWait("010B");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(intakeMapRes, batchData);
+
+      String timingRes = await _sendAndWait("010E");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(timingRes, batchData);
+
+      String intakeAirRes = await _sendAndWait("010F");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(intakeAirRes, batchData);
+
+      String mafRes = await _sendAndWait("0110");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(mafRes, batchData);
+
+      String throttleRes = await _sendAndWait("0111");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(throttleRes, batchData);
+
+      String fuelLevelRes = await _sendAndWait("012F");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(fuelLevelRes, batchData);
+
+      String baroRes = await _sendAndWait("0133");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(baroRes, batchData);
+
+      String cmVoltRes = await _sendAndWait("0142");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(cmVoltRes, batchData);
+
+      String ambTempRes = await _sendAndWait("0146");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(ambTempRes, batchData);
+
+      String oilTempRes = await _sendAndWait("015C");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(oilTempRes, batchData);
+
+      String fuelRateRes = await _sendAndWait("015E");
+      if (!_isRealMode || !_connection.isConnected) return;
+      batchData = _parseResponse(fuelRateRes, batchData);
 
       if (_isRealMode && _connection.isConnected) {
         _data = batchData;
